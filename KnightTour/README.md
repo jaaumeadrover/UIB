@@ -1,1 +1,2 @@
-Pràctica Final 2. Backtracking
+# Knight Tour
+Java backtracking algorithm that finds 3 solutions for knight tour problem.
