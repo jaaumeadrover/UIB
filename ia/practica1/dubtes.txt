@@ -1,0 +1,20 @@
+
+1. Com es retorna l'accio en el mètode generaFills: (pare, (Accio,Direccio))
+2. TORNS X BOTAR?
+3. Mini Max hem de tenir dos agents, ja que han de competir
+4. Per afegir un agent:
+5. No modificar fitxer entorn.py ni joc.py
+6. Min està a un lloc i Max a un altre
+7. Estat:
+    - Info d'aquell estat
+    -
+8. Posició actual dels agents? Que es un enter o una coord (x,y)?
+9. Funcions hash, equals, lt els hem d'incloure encara que pareixi que no els empleam
+
+
+IMPORTANT:
+
+1. TORNS X BOTAR? --------> 3
+2.com retornam l'atribut pare?Quina estructura segueix aquest atribut??? pare,(AccionsRana.Despl,Direccio)
+3. Com implementam l'espera de dos torns??
+4.Quin sentit te esperar? Quan s'usa?
