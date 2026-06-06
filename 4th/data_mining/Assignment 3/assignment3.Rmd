@@ -1,0 +1,588 @@
+---
+title: "Assignment 3"
+output: html_document
+date: '2023-12-02'
+author: "Joan Balaguer,Jaume Adrover"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(dplyr)
+library(caret)
+library(neuralnet)
+library(rpart)
+library(rpart.plot)
+library(class)
+library(e1071)
+```
+
+### O. Introduction
+
+In this project, our goal is to predict survival state of patients with liver cirrhosis. For this purpose, we'll train different classification models and test which one works better for our data.
+
+### 1. Data analysis
+
+First of all, we must analize our data, so we'll show its summary:
+
+```{r data}
+data <- read.csv("cirrhosis.csv")
+summary(data)
+```
+
+After having a little look to it, we are going to show 6 first rows.
+
+```{r}
+head(data)
+```
+
+It looks like we have a both numerical and categorical variables. Status,Drug, Sex, Ascites, Spiders and Edema are categorical variables that we'll convert to numerical after analyzing the whole dataset.
+
+### 1.2 Plotting data values
+
+As we want to predict status variable we'll plot this one along with other columns to see it's relationship.
+
+#### 1.2.1 N_Days
+
+First of all we are going to show the distribution of the number of days between registration and the earlier of death, transplantation, or study analysis time, in an histogram:
+
+```{r}
+hist(data$N_Days,main="Distribution of N_days",xlab="Number of days",ylab="Count", border="red",col="blue",density=10)
+
+
+mean_D <- mean(data[data$Status=='D',]$N_Days)
+mean_C <- mean(data[data$Status=='C',]$N_Days)
+mean_CL <- mean(data[data$Status=='CL',]$N_Days)
+
+table <- data.frame(
+  Variable = c("Mean(D)", "Mean(C)", "Mean(CL)"),
+  Days_Mean = c(mean_D, mean_C, mean_CL)
+)
+print(table)
+
+```
+
+As we can see, mean of every status group is different, where death cases have a lower day mean.
+
+#### 1.2.2 Status
+
+Now, let's plot what our desired prediction value looks like. Let's show how many values of each status we have. Let's start with an histogram plot:
+
+```{r}
+categorical_column <- data$Status
+
+# Frequency table
+frequency_table <- table(categorical_column)
+
+# Barplot of each status
+barplot(frequency_table, main = "Status group count", xlab = "Status", ylab = "Count", col = "lightblue")
+```
+
+Now we have seen the number of values for each status. To see the percentage of each one, we are going to plot another histogram:
+
+```{r}
+# Calculate percentage values
+percentage_values <- prop.table(frequency_table) * 100
+
+# Create a barplot with percentage values
+barplot(percentage_values, main = "Percentage of Status", xlab = "Status", ylab = "Percentage(%)", col = "lightblue")
+
+```
+
+#### 1.2.3 Drug
+
+Now let's analize the Drug column and see how many "Placebos" and "D-penicillamine" counts we have in the data set.
+
+```{r}
+categorical_column <- data$Drug
+
+# Create a table of frequencies
+frequency_table <- table(categorical_column)
+frequency_table
+```
+
+Now we are going to show patients status that where treated with Placebo or D-penicillamine. With that we will see how many patients that where treated with an specific drug, ended dying or not:
+
+```{r}
+# Create a table of counts
+count_table <- table(data$Status, data$Drug)
+
+# Create a bar plot
+barplot(count_table, beside = TRUE, col = c("lightblue", "lightgreen", "lightcoral"),
+        main = "Status for each drug group", xlab = "Drug", ylab = "Status Count",
+        legend = rownames(count_table), args.legend = list(x = "topright", bty = "n"))
+
+
+```
+
+Drug variable doesn't seem to be a very significant factor of death causes.
+
+#### 1.2.4 Age
+Now, let's analize patients age:
+```{r}
+date_in_years <- data$Age / 365.25
+hist(date_in_years,main="Histogram of date in years",xlab="Years")
+```
+
+As we can see, in the main, patients had between 40 and 60 years.
+
+#### 1.2.5 Sex
+
+Now, let's see how gender is distributed in this data set:
+```{r}
+categorical_column <- data$Sex
+
+# Create a table of frequencies
+frequency_table <- table(categorical_column)
+barplot(frequency_table, main = "Gender group count", xlab = "Gender", ylab = "Count", col = c("lightblue","red"))
+```
+
+As we can see, mostly patients where women. Now we are going to look for each gender status distribution:
+
+```{r}
+count_table <- table(data$Status, data$Sex)
+
+# Bar plot
+barplot(count_table, beside = TRUE, col = c("lightblue", "lightgreen", "lightcoral"),
+        main = "Status for each gender group", xlab = "Sex", ylab = "Status Count",
+        legend = rownames(count_table), args.legend = list(x = "topright", bty = "n"))
+```
+
+As having more women, we can clearly see that they obviously have a higher death rate.
+
+#### 1.2.6 
+
+Let's see how the Edema column is distributed over different status:
+```{r}
+Xtab <- table(data$Status, data$Edema)
+
+# Colors for each Status level
+status_colors <- c("lightblue", "lightgreen", "lightcoral")
+
+# Plot a clustered bar chart 
+barplot(Xtab, beside = TRUE, col = status_colors, 
+        main = "Status for each Edema group",
+        xlab = "Edema", ylab = "Count", legend = rownames(Xtab))
+```
+
+We can conclude that most patients had no edema, so most people die in that group.
+
+#### 1.2.7 Ascites
+
+Now, let's see how Ascites columns is distributed:
+```{r}
+categorical_column <- data$Ascites
+
+# Frequency table
+frequency_table <- table(categorical_column)
+barplot(frequency_table, main = "Ascites group count", xlab = "Ascites", ylab = "Count", col = c("lightblue","red"))
+```
+
+As we can see, most patients had no Ascites.
+
+```{r}
+# Create a table of counts
+count_table <- table(data$Status, data$Ascites)
+
+# Create a bar plot
+barplot(count_table, beside = TRUE, col = c("lightblue", "lightgreen", "lightcoral"),
+        main = "Status for each ascites group", xlab = "Ascites", ylab = "Status Count",
+        legend = rownames(count_table), args.legend = list(x = "topright", bty = "n"))
+```
+
+Because most patients had no Ascites, the distribution of the status doesn't give us much valuable information.
+
+#### 1.2.8 Hepatomegaly
+
+How is Hepatomegaly column distributed? Let's find it out:
+```{r}
+
+categorical_column <- data$Hepatomegaly
+
+# Frequency table
+frequency_table <- table(categorical_column)
+barplot(frequency_table, main = "Hepatomegaly group count", xlab = "Hepatomegaly", ylab = "Count", col = c("lightblue","red"))
+```
+
+Approximately, half of the patients had hepatomegaly so is a very freqüent symptom. Now, let's check if it has something to see with status:
+
+```{r}
+# Count table
+count_table <- table(data$Status, data$Hepatomegaly)
+
+# Create a bar plot
+barplot(count_table, beside = TRUE, col = c("lightblue", "lightgreen", "lightcoral"),
+        main = "Status for each hepatomegaly group", xlab = "Hepatomegaly", ylab = "Status Count",
+        legend = rownames(count_table), args.legend = list(x = "topright", bty = "n"))
+```
+
+We can see that once patients had hepatomegaly, higher mortality rate appeared.
+
+#### 1.2.9 Spiders
+
+Let's do the same for spider column:
+```{r}
+categorical_column <- data$Spiders
+
+# Frequency table
+frequency_table <- table(categorical_column)
+barplot(frequency_table, main = "Spiders group count", xlab = "Spiders", ylab = "Count", col = c("lightblue","red"))
+```
+
+Just a sample of the patients had spiders. Let's see distribution for each status.
+
+```{r}
+# Count table
+count_table <- table(data$Status, data$Spiders)
+
+# Bar plot
+barplot(count_table, beside = TRUE, col = c("lightblue", "lightgreen", "lightcoral"),
+        main = "Status for each spiders group", xlab = "Spiders", ylab = "Status Count",
+        legend = rownames(count_table), args.legend = list(x = "topright", bty = "n"))
+```
+
+As we could see in Hepatomegaly column, patients that had spiders symptom, had more dying chances.
+
+#### 1.2.10 Stage
+
+Now let's study how stage column is distributed:
+```{r}
+categorical_column <- data$Stage
+
+# Frequency table
+frequency_table <- table(categorical_column)
+barplot(frequency_table, main = "Stage group count", xlab = "Stage", ylab = "Count", col = c("lightblue","red"))
+```
+
+We can see that most patients were in 3rd or 4th histologic stage. 
+
+```{r}
+# Count table
+count_table <- table(data$Status, data$Stage)
+
+# Barplot
+barplot(count_table, beside = TRUE, col = c("lightblue", "lightgreen", "lightcoral"),
+        main = "Status for each Stage group", xlab = "Stage", ylab = "Status Count",
+        legend = rownames(count_table), args.legend = list(x = "topright", bty = "n"))
+```
+
+We can see that patients with an histologic stage 4 had very few chances of surviving. A higher stage means more death risk, thing that makes sense because when a disease stage is higher, cure is harder to find.
+
+### 2.Data cleaning
+
+In this stage, we'll process our data so it fits correctly into our model. We'll basically handle these 4 different cases:
+
+1. Missing values
+2. Filter relevant data
+3. Categorical columns
+4. Normalize values from 0 to 1
+
+With this function, we'll check for rows that have >0 NA values in any column.
+```{r}
+na_summary_func <- function(data) {
+  # NA values for each column
+  na_counts <- colSums(is.na(data))
+
+  # Columns ~ NA counts
+  na_summary <- data.frame(Column = names(na_counts), NA_Count = na_counts)
+  
+  # Keep only columns with NA counts greater than 0
+  na_summary <- na_summary[na_summary$NA_Count > 0,]
+  
+  return(na_summary)
+}
+```
+
+
+#### 2.1 Missing values
+
+Let's look for rows with NA values:
+
+```{r}
+na_summary_func(data)
+```
+As we can see, we have a lot of missing values in both numerical and categorical columns.Our goal is to remove all those rows.
+
+```{r}
+clean_data <- na.omit(data)
+```
+
+After cleaning our dataset, let's check if the problem has been solved:
+
+```{r}
+na_summary_func(clean_data)
+```
+
+Missing values have been deleted succesfully.
+
+#### 2.2 Filter relevant data
+
+In this step, we'll figure out what columns can be deleted and which ones look more important for our classification task.
+
+```{r}
+head(data)
+```
+
+Considering every single column except ID is a medical metric, we could remove first column as it only acts as an identifier.
+
+```{r}
+clean_data <- select(clean_data, -ID)
+head(clean_data)
+```
+
+#### 2.3 Categorical columns
+
+  Next, we'll figure out how to convert categorical columns to numerical ones. Our best choice is one hot encoding technique, as we want to have our final values in a range from 0 up to 1. Let's go for it.
+  
+```{r}
+categ_cols <- c("Sex", "Ascites", "Hepatomegaly", "Spiders", "Edema", "Drug", "Stage")
+
+# One-hot encoding
+encoded_data <- dummyVars("~.", data = clean_data[, categ_cols], fullRank = TRUE) %>%
+  predict(newdata = clean_data[, categ_cols])
+
+clean_data <- cbind(clean_data[, setdiff(names(clean_data), categ_cols)], encoded_data)
+
+head(clean_data)
+```
+  
+Afterwards, we only need to change another column, our label target. In our case, we want to predict whether a patient would be dead or not, which is binary. We can apply substitution so D values would be replaced for 1 and other ones(C,CL) for 0.
+
+```{r}
+clean_data <- clean_data %>%
+  mutate(Status = ifelse(Status == 'D', 1, 0))
+
+head(clean_data)
+
+```
+
+#### 2.4 Data Normalization
+
+  In this final step, we'll apply scaling to all numerical columns so they have values ranged from 0 up to 1. We'll use caret built-in function preProcess that uses this formula:
+  
+\[ x' = \frac{{x - \text{min}(X)}}{{\text{max}(X) - \text{min}(X)}} \]
+
+Result from this formula meets the following condition:
+
+\[ x' \in [0,1] \]
+
+Let's scale our values:
+```{r}
+preprocess_model <- preProcess(clean_data, method = "range")
+
+# Scale entire dataframe
+df_scaled <- predict(preprocess_model, newdata = clean_data)
+
+summary(df_scaled)
+```
+  
+  All columns have min 0 and max 1. We finally have our data ready to fit into our models!
+
+### 3. Classification tasks
+
+  First of all, we should split our data in training and testing. We'll initially try a 80-20 config.
+```{r}
+set.seed(367)  
+train_indices <- sample(1:nrow(df_scaled), 0.8 * nrow(df_scaled))
+train_data <- df_scaled[train_indices, ]
+test_data <- df_scaled[-train_indices, ]
+
+```
+
+#### 3.1 Perceptron
+
+First of all, we'll create a Perceptron model, coming from neuralnet library. Using this library will help us by avoiding doing it from scratch.
+
+```{r}
+set.seed(367)
+formula <- as.formula("Status ~ N_Days + Age + Bilirubin + Cholesterol + Albumin + Copper + Alk_Phos + SGOT + Tryglicerides + Platelets + Prothrombin + SexM + AscitesY + HepatomegalyY + SpidersY + EdemaS + EdemaY + DrugPlacebo + Stage")
+
+perceptron_model <- neuralnet(
+  formula,
+  data = train_data,
+  hidden = c(5),  
+  linear.output = TRUE
+)
+
+```
+
+
+
+##### 3.1.2 Evaluation
+
+After having built the entire model, let's check for some metrics such as accuracy or confusion matrix.
+
+```{r}
+# Predict
+predictions <- predict(perceptron_model, newdata = test_data)
+
+#Binary step function
+binary_predictions <- ifelse(predictions >= 0, 1, 0)
+
+# Confusion matrix
+conf_matrix <- table(binary_predictions, test_data$Status)
+print(conf_matrix)
+
+# Acuracy from conf. matrix
+accuracy <- sum(diag(conf_matrix)) / sum(conf_matrix)
+
+cat("Accuracy:", accuracy, "\n")
+```
+
+
+#### 3.2 Decision trees
+
+  Next, we are going to build two decision trees models, one for 80-20 and another for 70-30 data. Our goal is to see how they work on different sized datasets. Let's start with the 80-20 one:
+  
+```{r}
+set.seed(134)
+# Train the decision tree
+tree1 <- rpart(
+  formula,
+  data = train_data,
+  method = "class"
+)
+
+```
+ Then, let's change data size so we can build the second one.
+ 
+```{r}
+set.seed(134)
+train_indices_2 <- sample(1:nrow(df_scaled), 0.7 * nrow(df_scaled))
+train_data2 <- df_scaled[train_indices_2, ]
+test_data2 <- df_scaled[-train_indices_2, ]
+
+tree2 <- rpart(
+  formula,
+  data = train_data2,
+  method = "class"  
+)
+```
+ 
+
+#### 3.2.3 Evaluation
+
+Let's evaluate our first model that uses 80-20 config.
+
+```{r}
+set.seed(367)
+# Predict
+predictions <- predict(tree1, newdata = test_data, type = "class")
+
+# Evaluate the model (example: confusion matrix)
+conf_matrix <- table(predictions, test_data$Status)
+print(conf_matrix)
+
+# Calculate the accuracy from the confusion matrix
+accuracy <- sum(diag(conf_matrix)) / sum(conf_matrix)
+cat("Accuracy:", accuracy, "\n")
+```
+
+We can see it is pretty accurate, considering development has been easy. Now let's see how it works with a smaller dataset to train.
+```{r}
+set.seed(367)
+predictions <- predict(tree2, newdata = test_data2, type = "class")
+
+# Evaluate the model (example: confusion matrix)
+conf_matrix <- table(predictions, test_data2$Status)
+print(conf_matrix)
+
+# Calculate the accuracy from the confusion matrix
+accuracy <- sum(diag(conf_matrix)) / sum(conf_matrix)
+cat("Accuracy:", accuracy, "\n")
+```
+There has been a huge raise in our accuracy, going from 66% to almost 74%.This can clearly assume that decision trees work better with smaller datasets as they can extract a better criteria structure.
+
+##### 3.2.3 Tree visualizations
+
+  Finally, we're going to plot our trees to see classification criteria.
+Let's see them:
+
+```{r}
+rpart.plot(tree1)
+```
+```{r}
+rpart.plot(tree2)
+```
+
+We can clearly see how criteria has changed from first to second one, where other variables have a bigger relevance. It seems it's easier for the model to make assumptions with smaller datasets.
+
+
+#### 3.3 KNN
+
+Right now, we are going to test different KNN models, We are going to try different k values, starting from 2 up to 5.
+
+```{r}
+k_values <- c(2,3,4,5)
+accuracy_values <- c()
+
+set.seed(367)  
+
+for (i in 1:4) {
+  knn_model <- knn(train = train_data[, -which(names(train_data) == "Status")],
+                 test = test_data[, -which(names(test_data) == "Status")],  
+                 cl = train_data$Status,
+               k = k_values[i])
+  # Conf. matrix
+  conf_matrix <- table(predicted = knn_model, actual = test_data$Status)
+  accuracy <- sum(diag(conf_matrix)) / sum(conf_matrix)
+  # Append accuracy to vector
+  accuracy_values <- c(accuracy_values,accuracy)
+}
+
+
+```
+
+##### 3.3.2 Evaluation
+
+After building and evaluating our models, let's show results in a proper way.
+
+```{r}
+result_table <- data.frame(K = k_values, Accuracy = accuracy_values)
+
+# Display the result
+print(result_table)
+```
+
+It seems to be a reverse relation between k number and accuracy. As k grows, accuracy seems to be lower or equal. This makes us think that the more neighbors you look to, the more chances you have to misclassify an instance.
+
+
+## 3.4 Naive-Bayes
+
+Our final choice will be a Naive-Bayes classifier for it's ease and good performance according to it. Good results can be obtained with an easy development.
+
+```{r}
+# Create a formula for the Naive Bayes model
+formula_nb <- Status ~ N_Days + Age + Bilirubin + Cholesterol + Albumin + Copper + 
+               Alk_Phos + SGOT + Tryglicerides + Platelets + Prothrombin + SexM + 
+               AscitesY + HepatomegalyY + SpidersY + EdemaS + EdemaY + DrugPlacebo + Stage
+
+# Model
+nb_model <- naiveBayes(formula_nb, data = df_scaled)
+```
+
+
+### 3.4.2 Evaluation
+
+```{r}
+set.seed(367)
+predictions <- predict(nb_model, newdata = test_data)
+
+# Create a confusion matrix
+conf_matrix <- table(predicted = predictions, actual = test_data$Status)
+
+# Calculate accuracy
+accuracy <- sum(diag(conf_matrix)) / sum(conf_matrix)
+
+# Conf. matrix && accuracy
+print(conf_matrix)
+cat("Accuracy:", accuracy, "\n")
+```
+
+
+## 4. Conclusion
+  After all the work done, we've seen very interesting information. We have learned different things while analysing that dataset such as medical knowledge. For example, we didn't know what hepatomegaly was until we found out on Google. This has brought us some medical knowledge. That research task and plotting data values have been the assignment parts where we have invested most of our time.
+  
+  On the other hand, we have done some classification using different models. One thing that has impressed us the most is how effective has been the Naive Bayes classifier and it's easy development. It's been the most accurate model and the easiest one. Other important conclusion is that decision trees work better with small size datasets, as they seem to extract more accurate criteria divisions. Perceptron model has been the least accuracte, obtaining less than 50%. And what about KNN? K nearest-neighbors has worked better with lowewr k values, where 2 is been the good one. Accuracy decreases as k raises. This might be due to misclassification problemas, because having more neighbours means you are less strict. In summary, Naive Bayes is our best choice.
+  
+  Finally, we can agree that this assignment has taught us some interesting things and some reinforcement for practicing with classification problems. It is a great introductory problem to classification topics and a simple one. We have achieved our proposed objectives by researching on the internet and trying different model configurations. 

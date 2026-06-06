@@ -1,0 +1,409 @@
+---
+title: "Assignment5: Mushroom Edibility Association Rules Analysis"
+author: "Jaume Adrover Fernandez, Joan Balaguer Llagostera"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(arules) 
+library(dplyr)   
+library(tidyverse)
+```
+
+## Objective of the Analysis
+
+The objective of this analysis is to discover association rules within a dataset of mushroom characteristics to differentiate between edible and poisonous mushrooms. Specifically, we aim to:
+
+1. **Identify Key Characteristics:**
+   - Determine which attributes (e.g., color, shape, odor) are most strongly associated with mushrooms being edible or poisonous.
+
+2. **Understand Patterns of Edibility:**
+   - Uncover patterns and combinations of features that commonly occur in edible mushrooms, as well as those that are indicative of poisonous varieties.
+
+3. **Optimize Rule Discovery:**
+   - Experiment with different parameters such as minimum support, minimum confidence, and rule length to find the most significant and relevant rules.
+
+4. **Eliminate Redundancy:**
+   - Identify and remove redundant rules to ensure that the final set of rules is both concise and informative.
+
+5. **Provide Conclusions:**
+   - Summarize the findings in a way that enhances understanding of mushroom edibility based on observable characteristics and contributes valuable insights for potential applications, such as in culinary use or educational purposes.
+
+
+## Data Exploration and Preprocessing
+
+First of all, we will import our dataset and take a look at the dataset structure and the type of variables that has on it.
+```{r}
+# Load the dataset
+mushrooms <- read.csv("mushrooms.csv")
+
+# Show the first few rows of the dataset
+head(mushrooms)
+
+# Summary of each variable
+summary(mushrooms)
+
+# Check the structure of the dataset
+str(mushrooms)
+```
+
+After taking a look at the dataset structure, we are going to check for missing values:
+
+```{r}
+# Check for missing values
+colSums(is.na(mushrooms))
+```
+
+As we can see, there are no NA valuse to worry about. Now, let's visualize the distribution of the target variable (edibility) to understand the proportion of edible vs poisonous mushrooms:
+
+```{r}
+# Visualize the distribution of edibility
+ggplot(mushrooms, aes(x = type)) +
+  geom_bar(fill = "blue", alpha = 0.7) +
+  labs(title = "Distribution of Mushroom Edibility",
+       x = "Type",
+       y = "Count")
+```
+
+We can see that there are a similar number of each type of mushroom. There are a few more edible than poisonous ones. Now we are going to explore other variables of the dataset in relation with our target variable (type):
+
+```{r}
+ggplot(mushrooms, aes(x = type, fill = odor)) +
+  geom_bar(position = "dodge") +
+  labs(title = "Distribution of Mushroom Type by Odor",
+       x = "Type",
+       y = "Count")
+
+ggplot(mushrooms, aes(x = type, fill = cap_surface)) +
+  geom_bar(position = "dodge") +
+  labs(title = "Distribution of Mushroom Type by cap_surface",
+       x = "Type",
+       y = "Count")
+
+ggplot(mushrooms, aes(x = type, fill = gill_color)) +
+  geom_bar(position = "dodge") +
+  labs(title = "Distribution of Mushroom Type by gill_color",
+       x = "Type",
+       y = "Count")
+
+ggplot(mushrooms, aes(x = type, fill = cap_color)) +
+  geom_bar(position = "dodge") +
+  labs(title = "Distribution of Mushroom Type by cap_color",
+       x = "Type",
+       y = "Count")
+
+ggplot(mushrooms, aes(x = type, fill = cap_shape)) +
+  geom_bar(position = "dodge") +
+  labs(title = "Distribution of Mushroom Type by cap_shape",
+       x = "Type",
+       y = "Count")
+
+ggplot(mushrooms, aes(x = type, fill = stalk_shape)) +
+  geom_bar(position = "dodge") +
+  labs(title = "Distribution of Mushroom Type by stalk_shape",
+       x = "Type",
+       y = "Count")
+
+ggplot(mushrooms, aes(x = type, fill = stalk_color_above_ring)) +
+  geom_bar(position = "dodge") +
+  labs(title = "Distribution of Mushroom Type by stalk_color_above_ring",
+       x = "Type",
+       y = "Count")
+
+ggplot(mushrooms, aes(x = type, fill = stalk_color_below_ring)) +
+  geom_bar(position = "dodge") +
+  labs(title = "Distribution of Mushroom Type by stalk_color_below_ring",
+       x = "Type",
+       y = "Count")
+
+ggplot(mushrooms, aes(x = type, fill = veil_color)) +
+  geom_bar(position = "dodge") +
+  labs(title = "Distribution of Mushroom Type by veil_color",
+       x = "Type",
+       y = "Count")
+
+ggplot(mushrooms, aes(x = type, fill = spore_print_color)) +
+  geom_bar(position = "dodge") +
+  labs(title = "Distribution of Mushroom Type by spore_print_color",
+       x = "Type",
+       y = "Count")
+
+ggplot(mushrooms, aes(x = type, fill = ring_number)) +
+  geom_bar(position = "dodge") +
+  labs(title = "Distribution of Mushroom Type by ring_number",
+       x = "Type",
+       y = "Count")
+
+ggplot(mushrooms, aes(x = type, fill = bruises)) +
+  geom_bar(position = "dodge") +
+  labs(title = "Distribution of Mushroom Type by bruises",
+       x = "Type",
+       y = "Count")
+```
+
+In all the above plots, we have seen possible characteristics that can be representative for an edible or poisonous mushrooms. Once we have checked the dataset, we can start with the association rules creation.
+
+## Association Rule Mining
+
+For the creation of the association rules we will use apriori algorithm. The Apriori algorithm requires the dataset to be in a transactional format, where each row represents a transaction and each column represents an item. In the context of this dataset, each row is a mushroom, and each column is a characteristic. The values in these columns should be binary (0 or 1), indicating the absence or presence of an attribute. For doing that, we will use the one-hot encoding, which converts categorical variables into a set of binary variables, each representing a category level.
+
+```{r}
+
+# Convert factors to character, if they are not already
+mushrooms <- mushrooms %>% mutate_if(is.factor, as.character)
+
+# One-Hot Encoding: Create binary columns for each category of each variable
+mushroomsM <- mushrooms %>%
+  mutate(row_id = row_number()) %>%  # Add a row identifier
+  pivot_longer(cols = -row_id, names_to = "feature", values_to = "value") %>%
+  unite("feature_value", feature, value, sep = "_") %>%  # Combine feature and value into a single column
+  mutate(value = 1) %>%  # Set value to 1 (indicating presence)
+  pivot_wider(names_from = "feature_value", values_from = "value", values_fill = list(value = 0)) %>%  
+  select(-row_id)  # Remove the row identifier
+
+# Remove columns with only a single unique value as they are not informative
+mushroomsM <- mushroomsM[, sapply(mushroomsM, function(x) length(unique(x)) > 1)]
+
+# Convert numeric values to boolean (TRUE/FALSE)
+mushroomsM <- mushroomsM %>% mutate(across(everything(), ~ .x == 1))
+
+# View the first few rows and the structure of the transformed dataset
+head(mushroomsM)
+names(mushroomsM)
+str(mushroomsM)
+
+```
+
+As we can see, we have created columns for each characteristic. For exemple, if a mushroom has diferent cap_colors we have created a columns for each possible color, and each one is categorized with a 0 or 1. A 0 tells us that the mushroom has not this color and a 1 tells us that it has it. As we can see, we have removed all the columns where all the values where 1 or 0 because there are not valuable for the solution of the problem and the creation of the rules. As well, we have transformed all the 1 and 0 for TRUE and FALSE values. This is due to the transaction transformation that we will do now.
+
+```{r results = 'hide'}
+
+# We convert the dataset labels to boolean
+mushroomsM <- mushroomsM %>%
+  mutate(across(everything(), as.logical))
+
+# Now convert the data to a transaction format
+transactions <- as(mushroomsM, "transactions")
+
+## plot of top 20 most frequent items
+itemFrequencyPlot(transactions, topN = 20, type="absolute", main="Top 20 Item Frequency")
+
+frequentItems <- eclat(transactions, parameter = list(support = 0.05)) # calculates support for frequent items
+inspect(head(frequentItems))
+```
+
+After transforming the modified mushroomsM dataset to transactions, now we are ready to create the rules:
+
+```{r}
+# Apply the Apriori algorithm
+rules <- apriori(transactions, 
+                 parameter = list(supp = 0.05, conf = 0.5, minlen = 2, maxlen = 3))
+
+# For a better treatment, we transform the rules to a dataframe
+rules_df <- as(rules, "data.frame")
+
+# Inspect top rules
+inspect(head(rules, n = 10))
+```
+
+
+## Analysis of Rules
+
+Now, we are going to analize the set of rules generated. We are going to try to identify the onese that are more important and the onse that are less. As well, we will try to see if there are any redundace between the rules and decide if we should delete some of them. Before doing that, we must understand what the parameters for the apriori algorithm means. 
+
+* **Support** : indicates how frequently the itemset appears in the dataset.
+* **Confidence** : measures how often items in Y appear in transactions containing X.
+* **Lift** : shows how much more often X and Y occur together than expected if they were statistically independent.
+
+
+Now let's focus on our target variable, the edibility of the mushrooms. We are going to filter the rules to focus only on those related to edibility:
+
+```{r}
+edible_rules <- subset(rules, rhs %pin% "type_edible")
+poisonous_rules <- subset(rules, rhs %pin% "type_poisonous")
+
+inspect(head(edible_rules, n = 10))
+inspect(head(poisonous_rules, n = 10))
+```
+
+### Most Significant Rules
+
+We will now identify the most significant rules, focusing on those with the highest lift, as they indicate a strong relationship between the antecedent and consequent.
+
+```{r}
+# Sorting edible rules by lift
+sorted_edible_by_lift <- sort(edible_rules, by = "lift", decreasing = TRUE)
+inspect(head(sorted_edible_by_lift, n = 20))
+
+# Sorting poisonous rules by lift
+sorted_poisonous_by_lift <- sort(poisonous_rules, by = "lift", decreasing = TRUE)
+inspect(head(sorted_poisonous_by_lift, n = 20))
+
+```
+
+### Least significant rules
+
+Similarly, we will look at the least significant rules, which might be less reliable due to lower confidence or lift.
+
+```{r}
+# Sorting edible rules by lift for least significant rules
+inspect(tail(sorted_edible_by_lift, n = 10))
+
+# Sorting poisonous rules by lift for least significant rules
+inspect(tail(sorted_poisonous_by_lift, n = 10))
+```
+
+
+### Analyzing Redundancy in Rules
+
+Redundant rules are those that convey similar information. Identifying these can make our rule set more concise and easier to interpret. We are going to try to find rules that have similar antecedents and slightly different consequents. This type of rules are not useful for our set of rules. To find this type of rules, we will use this code to find possible candidates:
+
+First, we have separate the antecedents form the consequences.
+
+```{r}
+# Extraer antecedentes y consecuentes como strings
+rules_df$antecedents <- sapply(strsplit(rules_df$rules, " => "), `[[`, 1)
+rules_df$consequents <- sapply(strsplit(rules_df$rules, " => "), `[[`, 2)
+
+# Ver el dataframe resultante
+head(rules_df)
+```
+
+Then, we have group the rules by antecedents.
+
+```{r}
+# Group rules by antecedents
+grouped_rules <- rules_df %>%
+  group_by(antecedents) %>%
+  summarize(consequents_list = list(consequents),
+            rules_list = list(rules),
+            .groups = 'drop')
+
+# View grouped rules
+head(grouped_rules)
+```
+
+Finaly, we group rules with more than one consequence
+
+```{r}
+# Filter groups with more than one consequence
+varied_consequents <- grouped_rules %>%
+  filter(lengths(consequents_list) > 1)
+
+# View results
+head(varied_consequents)
+
+```
+
+The *varied_consequents* object, is a dataframe that groups association rules based on their antecedents. Each row in this dataframe represents a group of rules that share the same antecedents. Here's what each column in *varied_consequents* represents:
+
+* **antecedents**: This column contains the antecedents (left-hand side, LHS) of the association rules. Each entry in this column is a set of items that appear together on the left-hand side of the association rules. All items in a set of antecedents are the same for the rules within that group.
+
+* **consequents_list**: This column stores a list of lists of the consequents (right-hand side, RHS) of each rule that shares the same antecedents. Each entry in this column is a list containing all the different sets of items that appear as consequents in the group of rules with those specific antecedents.
+
+* **rules_list**: Similar to consequents_list, this column is a list of the complete rules (in their original format) that belong to each antecedent group. It's useful if you want to refer back to the complete rule with its support, confidence, lift, etc.
+
+Let's show an exemple of using of the dataframe we have created:
+
+```{r}
+# Look for any specific row we want to look for
+specific_row_number <- 10
+
+# Extracting the antecedent
+specific_antecedents <- varied_consequents$antecedents[[specific_row_number]]
+
+# Extracting the list of consequents from the specific row
+specific_consequents_list <- varied_consequents$consequents_list[[specific_row_number]]
+
+# Extracting the list of rules from the specific row
+specific_rules_list <- varied_consequents$rules_list[[specific_row_number]]
+
+# Printing the full lists
+print(specific_antecedents)
+cat("\n\n\n")
+print(specific_consequents_list)
+cat("\n\n\n")
+print(specific_rules_list)
+```
+
+## Interpretation of Rules
+
+The interpretation of these rules can provide valuable insights into the characteristics of mushrooms that are commonly associated with being edible or poisonous. We will discuss the implication of 3 of the top 10 rules from *sorted_edible_by_lift* and 3 more from *sorted_poisonous_by_lift* and we will see haw important are they to identify an edible or poisonous mushroom.
+
+```{r}
+inspect(sorted_edible_by_lift[1])
+```
+
+This rule suggests that mushrooms with a gray color above the ring on the stalk are likely to be edible. The confidence of 1 indicates that 100% of the observations with this characteristic in the dataset were edible mushrooms. This implicates that the presence of a gray color above the ring could be a strong indicator of an edible mushroom. This characteristic can be used as a quick visual guide when identifying safe mushrooms to consume.
+
+```{r}
+inspect(sorted_edible_by_lift[3])
+```
+
+Mushrooms that have bruises and purple-colored gills are found to be edible. This combination of features seems to be a reliable indicator of edibility, as evidenced by the perfect confidence score. The rule can inform that the combination of these two traits, bruising and purple gills, is a distinctive marker of non-poisonous varieties.
+
+```{r}
+inspect(sorted_edible_by_lift[7])
+```
+
+The rule indicates that mushrooms with crowded gill spacing and a fibrous surface above the ring are edible. The consistent confidence of 1 across these rules suggests that this particular morphological profile is exclusively associated with edible mushrooms in the dataset. This rule could be particularly useful in educational materials for those learning about mushroom harvesting, emphasizing the significance of gill spacing and stalk surface texture in the identification process.
+
+Now, let's analize the implications of some rules from *sorted_poisonous_by_lift*
+
+```{r}
+inspect(sorted_poisonous_by_lift[1])
+```
+
+This rule indicates that mushrooms with a buff color below the mushroom's ring on the stalk are identified as poisonous. The confidence level of 1 suggests that all mushrooms with this feature in the dataset are poisonous. This trait could be a strong visual cue for identifying potentially harmful mushrooms, serving as a critical warning sign.
+
+```{r}
+inspect(sorted_poisonous_by_lift[3])
+```
+
+Mushrooms that emit a spicy odor are classified as poisonous. The rule's perfect confidence score implies that spicy odor is a definitive marker of a mushroom's toxicity within the dataset. The odor of a mushroom is a significant indicator of its safety. Educating mushroom pickers about the correlation between a spicy smell and toxicity could be lifesaving, emphasizing the need to trust one's sense of smell when foraging.
+
+```{r}
+inspect(sorted_poisonous_by_lift[7])
+```
+
+The presence of a foul odor is directly associated with poisonous mushrooms. The dataset shows that mushrooms with a foul smell are invariably poisonous, as denoted by the confidence score of 1. A foul smell is a universally recognized sign of potential danger in food items, and this rule reinforces that intuition in the context of mushrooms. This characteristic can be used as a simple heuristic for avoiding poisonous mushrooms during collection.
+
+
+## Conclusion of Rule Analysis
+
+In this assignment, we started a process of association rule mining, applying the Apriori algorithm to a dataset of mushroom characteristics. The goal was to recognize patterns that distinguish edible mushrooms from poisonous ones.
+
+We began with data preprocessing, which involved encoding categorical variables through one-hot encoding, resulting in a binary representation suitable for association rule mining. This step was crucial as it prepared our data for the subsequent analysis, ensuring each characteristic of the mushrooms was appropriately represented.
+
+With our data preprocessed, we applied the Apriori algorithm, experimenting with various parameters such as support, confidence, and rule length. By adjusting these parameters, we were able to extract meaningful rules that reveal strong associations within our data. We discovered that attributes such as stalk color, gill color, odor, and bruising are indicative of a mushroom's edibility or toxicity.
+
+Our analysis extracted several significant rules with high lift values, which underscored the strong association between certain mushroom characteristics and their classification as edible or poisonous. For example, we found that mushrooms with a grey stalk color above the ring or a spicy odor are highly likely to be edible or poisonous, respectively.
+
+Throughout the process, we were mindful of redundancies among the rules. We identified groups of rules with similar antecedents and slightly different consequents, which allowed us to reduce our rule set by removing redundancies and focusing on the most informative rules.
+
+In conclusion, this assignment allowed us to achieve our objective of distinguishing between edible and poisonous mushrooms through data mining techniques. Doing all the process was really useful for improving the way we do the data preparation, parameter tuning, and the interpretation of results.
+
+Reflecting on the assignment, it was particularly interesting to see how specific mushroom traits are strongly correlated with edibility. The fact that certain combinations of features such as odor and gill color are exclusive to either edible or poisonous mushrooms was a notable finding.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

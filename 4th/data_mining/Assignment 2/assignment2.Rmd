@@ -1,0 +1,320 @@
+---
+title: "Assignment 2: Prestige"
+output: html_document
+date: '2023-11-27'
+author: Jaume Adrover Fernández
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(car)
+library(ggplot2)
+library(gridExtra)
+```
+## 0.Introduction
+
+In this assignment, our goal is to fit a regression model according to Prestige Dataset.We'll try different models such as Linear Regression or Polynomial Regression with data Transformation.
+
+
+## 1.Data analysis
+
+In this first stage we're going to see a little summary of our dataset.
+
+```{r summary}
+data("Prestige")
+summary(Prestige)
+```
+And now, let's see how many number of observations we do have:
+```{r length}
+cat("Number of observations in the dataset:", nrow(Prestige), "\n")
+```
+
+
+We have 102 rows, built on top of 6 columns:
+
+- **Education**: indicates average education, measured in years.Float type.
+- **Income**:   tells us average income in dollars.Float type.
+- **Women**:  percentage that are female. Float type, from 0-100(%).
+- **Prestige**:   Pineo-Porter prestige score for occupation, from a social survey.Float type
+- **Census**:   Canadian Census occupational code. Integer type
+- **Type**:   occupation type, such as Professional, Blue-Collar(hard manual labors) or White-Collar(office work). String type.
+
+All columns except type are numerical values, and last one is categorical.
+
+## 2.Data visualization
+
+In this phase we are going to see different relationships between variables. We want to focus on income, so we'll figure out how these pairs work together:
+
+1. Income-Education
+2. Income-Prestige
+3. Income-Women
+4. Income-type
+
+We are not going to use census because it seems to work just as an identifier.
+
+```{r data visualization}
+#Income-Education
+plot(Prestige$education, Prestige$income, 
+     main = "Scatterplot: Education vs. Income",
+     xlab = "Education", ylab = "Income")
+
+#Income-Prestige
+plot(Prestige$prestige, Prestige$income, 
+     main = "Scatterplot: Prestige vs. Income",
+     xlab = "Prestige", ylab = "Income")
+#Income-Women
+plot(Prestige$women, Prestige$income, 
+     main = "Scatterplot: Women vs. Income",
+     xlab = "Women", ylab = "Income")
+#Income-type
+plot(Prestige$type, Prestige$income, 
+     main = "Scatterplot: Type vs. Income",
+     xlab = "Type", ylab = "Income")
+```
+
+
+Let's find out how are these variables connected to each other in a correlation matrix.
+
+```{r}
+cols <- c("income", "education", "prestige", "women")
+
+selected_data <- Prestige[, cols]
+
+correlation_matrix <- cor(selected_data)
+
+print(correlation_matrix["income",])
+```
+We can extract some precious conclusions about this:
+
+1. Education and Prestige seem to increase income.As these two variables increase, incomes becomes bigger. They both have a positive coefficient.
+2. There seems to exist more type of jobs where women % is lower than 20. It has a negative coefficient, so when it decreases, incomes goes bigger and when it raises, income goes lower.
+3. Job type has 3 groups, where professionals have a bigger income than the other ones.
+4. The variable that has a higher Pearson coefficient is prestige, so this is the one that is most highly correlated to income. 
+
+
+### 2.1 Income vs education
+
+Now, we're going to consider only income vs education variables.
+```{r}
+#Income Histogram
+income_histogram <- ggplot(Prestige, aes(x = income)) +
+  geom_histogram(binwidth = 500, fill = "skyblue", color = "black") +
+  labs(title = "Income Histogram", x = "Income", y = "Frequency")
+
+
+#Education Boxplot
+education_boxplot <- ggplot(Prestige, aes(x = "", y = education)) +
+  geom_boxplot(fill = "lightgreen", color = "black") +
+  labs(title = "Education Boxplot", x = "", y = "Education")
+
+
+#Education vs Income Scatterplot
+educ_vs_income_scatterplot <- ggplot(Prestige, aes(x = education, y = income)) +
+  geom_point() +
+  labs(title = "Income vs. Education",
+       x = "Education", y = "Income")
+
+
+
+grid.arrange( education_boxplot,income_histogram,educ_vs_income_scatterplot,nrow=2)
+```
+
+#### 2.1.2 Linear Regression
+
+  Let's find out how a linear regression works along this data pair.
+```{r}
+
+linear_model <- lm(income ~ education, data = Prestige)
+
+summary(linear_model)
+
+# Draw model over scatterplot
+scatterplot_with_regression <- educ_vs_income_scatterplot +
+  geom_abline(intercept = coef(linear_model)[1], slope = coef(linear_model)[2],
+              color = "blue", linetype = "dashed")
+
+print(scatterplot_with_regression)
+```
+
+
+We can clearly see it is difficult to predict values higher than 12 average years in education because there are some 'outliers'. Our regression model couldn't be able to predict outer values correctly.Let's check if assumptions are fine:
+
+```{r}
+residual_data = data.frame(
+  predict = fitted(linear_model),
+  residuals = residuals(linear_model)
+)
+# Plot residuals && predictions
+ggplot(residual_data, aes(x = predict, y = residuals)) +
+  geom_point() +
+  geom_hline(yintercept = 0, color = "red") +
+  labs(title = "Residuals vs predicted vals",
+       x = "Predicted values",
+       y = "Residuals")
+
+hist(residuals(linear_model), main = "Histogram of Residuals", xlab = "Residuals")
+```
+
+After examining residuals, we can clearly say this:
+
+1. **Relationship between X and Y is linear**: as we can see in the first plot, data isn't linear. It doesn't have an equal residual distance.
+2. **Y is distributed normally at each value of X**: data isn't distributed normally, it can be seen within the residuals histogram.
+3. **The variance of Y at every value of X is the same**:  as we can see, variance isn't the same in all observations. Having non-constant variance menas we have heteroscedasticity.
+4. **Observations are independent**: note that residuals behavior tells us that observations are not independent. They aren't around zero.
+
+#### 2.1.3 Polynomial Regression
+
+  After observing a simple linear regression predict our desired values, let's check if a polynomial model is better or not.
+
+```{r}
+income <- Prestige$income
+education <- Prestige$education
+education2 <- education^2
+#  poly model (degree = 2)
+poly_model <- lm(income ~ education + education2)
+
+scatterplot_with_poly <- educ_vs_income_scatterplot +
+  geom_line(aes(y = predict(poly_model)), color = "blue")
+
+print(scatterplot_with_poly)
+```
+
+
+#### 2.1.4 Linear vs Polynomial
+
+Finally, let's compare both previous models and check which one is best suited to our data.
+```{r}
+# Final Plot
+multiple_model_scatterplot <- 
+  educ_vs_income_scatterplot + #scatterplot
+  geom_abline(aes(intercept = coef(linear_model)[1], slope = coef(linear_model)[2], color = "Linear Regression")) + #Linear Regression
+  geom_line(aes(y = predict(poly_model), color = "Polynomial Regression")) + #Polynomial Regression
+  labs(title = "Education vs. Income Scatterplot with Regression Lines") +
+  scale_color_manual(values = c("Linear Regression" = "red", "Polynomial Regression" = "blue")) +
+  theme(legend.position = "bottom")
+
+
+print(multiple_model_scatterplot)
+
+```
+
+
+As we can see, it looks like the Polynomial model is more sensitive to outliers and further values, so high income predicted values  would be more accurate. It seems a better model than the linear one as we can see the blue line is almost equally closer to low-medium income points. Let's check it with R-squared values now:
+
+
+```{r}
+r2_lin <- summary(linear_model)$r.squared
+r2_poly <- summary(poly_model)$r.squared
+
+
+cat("Linear Regression:", r2_lin, "\n")
+cat("Polynomial Regression:", r2_poly, "\n")
+```
+
+A higher R-Squared value means variance percentage due to input value is higher, so model is better. To sum up, we can say polynomial model is better.
+
+
+## 3.Data Transformation
+Finally, we'll take a chance to different transformations to our data such as:
+
+1. Log based transformation
+2. Squared root transformation
+
+Let's see how a linear model works with transformed data.
+
+### 3.1 Log based transformations
+  In this type of transformation, we are going to apply logarithm to x, y and both We'll show R Squared values in a table with all results to see which model is better.
+  
+  
+  Let's plot our data and train a model for each combination:
+```{r}
+theme_set(theme_bw())
+
+#lm -> log(x),y
+lm1 <- lm(log(education)~income,data=Prestige)
+#log(x),y
+Prestige.plot.log1 <- ggplot(Prestige) + geom_point(aes(x=log(education), y=income), size=2) + 
+  xlab("Log(Education) years") + ylab("Income")
+
+#lm -> x,log(y)
+lm2 <- lm(education~log(income),data=Prestige)
+#x,log(y)
+Prestige.plot.log2 <- ggplot(Prestige) + geom_point(aes(x=education, y=log(income)), size=2) + 
+  xlab("Education years") + ylab("log(Income) dollars")
+
+#lm ->log(x),log(y)
+lm3 <- lm(log(education)~log(income),data=Prestige)
+#log(x),log(y)
+Prestige.plot.log3 <- ggplot(Prestige) + geom_point(aes(x=log(education), y=log(income)), size=2) + 
+  xlab("log(Education) years") + ylab("log(Income) dollars")
+
+grid.arrange(Prestige.plot.log1, Prestige.plot.log2,Prestige.plot.log3, nrow=1)
+```
+
+
+
+
+
+```{r}
+log_table <- data.frame(
+        First = c(summary(lm1)$r.squared),
+        Second = c(summary(lm2)$r.squared),
+        Third = c(summary(lm3)$r.squared)
+)
+
+new_column_names <- c('[Log(x),y]', '[x,Log(y)]', '[Log(x),Log(y)]')
+colnames(log_table) <- new_column_names
+log_table
+```
+
+
+### 3.2 Squared Root transformation
+  In this final stage, we'll apply sqrt to x,y or both. The main goal is to simulate a linear data within these transformations and apply a linear model.
+```{r}
+theme_set(theme_bw())
+
+#lm -> sqrt(x),y
+lm1 <- lm(sqrt(education)~income,data=Prestige)
+#sqrt(x),y
+Prestige.plot.sqrt1 <- ggplot(Prestige) + geom_point(aes(x=sqrt(education), y=income), size=2) + 
+  xlab("sqrt(Education) years") + ylab("Income")
+
+#lm -> x,sqrt(y)
+lm2 <- lm(education~sqrt(income),data=Prestige)
+#x,sqrt(y)
+Prestige.plot.sqrt2 <- ggplot(Prestige) + geom_point(aes(x=education, y=sqrt(income)), size=2) + 
+  xlab("Education years") + ylab("sqrt(Income) dollars")
+
+#lm -> sqrt(x),sqrt(y)
+lm3 <- lm(sqrt(education)~sqrt(income),data=Prestige)
+#sqrt(x),sqrt(y)
+Prestige.plot.sqrt3 <- ggplot(Prestige) + geom_point(aes(x=sqrt(education), y=sqrt(income)), size=2) + 
+  xlab("sqrt(Education) years") + ylab("sqrt(Income) dollars")
+```
+
+```{r}
+grid.arrange(Prestige.plot.sqrt1, Prestige.plot.sqrt2,Prestige.plot.sqrt3, nrow=1)
+```
+
+
+```{r}
+sqrt_table <- data.frame(
+        First = c(summary(lm1)$r.squared),
+        Second = c(summary(lm2)$r.squared),
+        Third = c(summary(lm3)$r.squared)
+)
+
+new_column_names <- c('[Sqrt(x),y]', '[x,Sqrt(y)]', '[Sqrt(x),Sqrt(y)]')
+colnames(sqrt_table) <- new_column_names
+sqrt_table
+```
+
+As we can finally see, best combination is x,sqrt(y) because it has the higher R-Squared value.
+
+
+
+
+
+
+
+
