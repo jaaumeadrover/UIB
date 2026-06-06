@@ -1,0 +1,48 @@
+#navBar{
+    background-color: #78ce5b;
+}
+
+/* Aumenta el espacio entre elementos de la lista */
+.navbar-nav .nav-item {
+    margin-right: 20px; 
+}
+
+/* Centrar verticalmente el texto dentro de la barra de navegación */
+.navbar-text {
+    display: flex;
+    align-items: center;
+    height: 100%;
+}
+
+.welcome-box {
+    border-left: 5px solid #FFD700; /* color del borde izquierdo */
+}
+
+.greeting {
+    color: #FFD700; /* color del saludo */
+    font-weight: bold;
+}
+
+.wave-emoji {
+    font-size: 1.5rem; /* tamaño del emoji */
+}
+
+.user-name {
+    color: #495057; /* color del nombre de usuario */
+}
+
+.icon-circle {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: auto;
+}
+
+.card-body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
