@@ -1,0 +1,32 @@
+Declaracions:
+
+Buffer,length[H]
+n=0
+N Abelles
+mutex notFull--->1(No ple)&&0(Ple)
+mutex notEmpty-->1(No buit)&&0(Buit)
+mutex posantMel
+
+inicialitzam notFull a 1
+
+def productor():
+    while():
+        #si no està ple
+        produeix()
+        #si cap abella esta a nes pot 
+        afegeix al Buffer
+        n++
+        #
+        if(n==H):
+            notFull->0
+
+
+
+def consumidor():
+    #si esta ple(notfull sigui 0)
+    while(1):
+        # si esta ple
+        while():
+            menja
+            #amolla notEmpty
+        #
