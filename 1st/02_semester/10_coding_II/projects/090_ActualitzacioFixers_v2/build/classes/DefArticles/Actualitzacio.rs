@@ -1,2 +1,0 @@
-DefArticles.TipusAct
-DefArticles.Actualitzacio

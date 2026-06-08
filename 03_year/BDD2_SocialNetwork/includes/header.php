@@ -1,2 +1,0 @@
-
-<link rel="icon" href="../images/favicon.ico" type="image/x-icon" />
