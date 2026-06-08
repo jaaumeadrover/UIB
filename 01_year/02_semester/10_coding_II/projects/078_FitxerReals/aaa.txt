@@ -1,0 +1,9 @@
+Les solucions de l'equacio de segon grau 72.45 x^2 + 80.12 x + -23.0 = 0 son reals!!
+	Solucio 1: 0.23649412954149995
+	Solucio 2: -1.3423602441032667
+La solucio de l'equacio de primer grau 23.0 x + -34.0 = 0 és 1.4782608695652173
+Les solucions de l'equacio de segon grau -45.98 x^2 + -23.76 x + -3.4 = 0 son complexes!!
+	Solucio 1: -0.2583732057416268 + -0.08478490500798723 i 
+	Solucio 2: -0.2583732057416268 - -0.08478490500798723 i 
+
+Fins una altre ocasio

@@ -1,0 +1,76 @@
+00001026 Starting Address
+Assembler used: EASy68K Editor/Assembler v5.16.01
+Created On: 23/04/2021 0:58:05
+
+00000000                             1  *--------------------------------------------
+00000000                             2  * Titulo : P1 (2020-2021) - Simple Encryption
+00000000                             3  * Autores: Alumno 1 y Alumno 2
+00000000                             4  *--------------------------------------------
+00001000                             5      ORG $1000
+00001000  =00000003                  6      DICT_SIZE: EQU 3
+00001000= 45 41 32                   7      DICT_IN: DC.B  'EA2'
+00001003= 41 45 31                   8      DICT_OUT: DC.B 'AE1'
+00001006= 41 53 54 52 55 43 ...      9      PHRASE:   DC.B 'ASTRUCTURE DA COMPUTEDORAS 2',0
+00001024                            10      NCHANGES: DS.W 1
+00001026                            11                DS.W 0
+00001026                            12  *--------------------------------------------
+00001026  =0000001C                 13      PHRASE_SIZE: EQU 28
+00001026                            14   
+00001026                            15  START:
+00001026  41F8 1000                 16      LEA.L DICT_IN,A0
+0000102A  43F8 1003                 17      LEA.L DICT_OUT,A1
+0000102E                            18      *
+0000102E  31FC 0000 1024            19      MOVE.W #0,NCHANGES     *CLR
+00001034  163C 0003                 20      MOVE.B #DICT_SIZE,D3   *INICIALIZAMOS CONTADOR LECTURAS=3
+00001038                            21      
+00001038                            22  LECT_DICT_IN:
+00001038  1018                      23      MOVE.B (A0)+,D0        *LECTURA LETRA DICT_IN
+0000103A  1219                      24      MOVE.B (A1)+,D1        *LECTURA LETRA DICT_OUT
+0000103C  343C 001C                 25      MOVE.W #PHRASE_SIZE,D2  *INICIALIZAMOS CONTADOR LETRAS=28
+00001040                            26      
+00001040                            27  
+00001040                            28      
+00001040                            29      
+00001040  5342                      30      SUBQ.W #1,D2
+00001042  45F8 1006                 31      LEA.L PHRASE,A2
+00001046                            32  LECT_PHRASE:
+00001046  1812                      33      MOVE.B (A2),D4
+00001048  B004                      34      CMP.B   D4,D0
+0000104A  6700 0006                 35      BEQ ENCRYPTION   
+0000104E  6000 0008                 36      BRA WRITE_LETTER                 
+00001052                            37  ENCRYPTION:
+00001052  1801                      38      MOVE.B D1,D4
+00001054  5278 1024                 39      ADD.W  #1,NCHANGES
+00001058                            40  WRITE_LETTER:    
+00001058  1484                      41      MOVE.B D4,(A2)
+0000105A  524A                      42      ADD.W  #1,A2
+0000105C                            43      
+0000105C  51CA FFE8                 44      DBRA D2,LECT_PHRASE
+00001060                            45      
+00001060  5303                      46      SUB.B  #1,D3            *LECTURA COMPLETA, HEMOS LEIDO 3 VECES?-->FINAL
+00001062  0C03 0000                 47      CMPI.B  #0,D3
+00001066  6700 0004                 48      BEQ FINAL
+0000106A  60CC                      49      BRA LECT_DICT_IN        
+0000106C                            50  FINAL:
+0000106C                            51  
+0000106C                            52      END    START        ; last line of source
+
+No errors detected
+No warnings generated
+
+
+SYMBOL TABLE INFORMATION
+Symbol-name         Value
+-------------------------
+DICT_IN             1000
+DICT_OUT            1003
+DICT_SIZE           3
+ENCRYPTION          1052
+FINAL               106C
+LECT_DICT_IN        1038
+LECT_PHRASE         1046
+NCHANGES            1024
+PHRASE              1006
+PHRASE_SIZE         1C
+START               1026
+WRITE_LETTER        1058

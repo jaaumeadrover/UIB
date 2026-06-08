@@ -1,0 +1,341 @@
+---
+title: "Proyecto asignatura  Estadística (MAT3) GIN2 Grupos 1 y 3: PARTE 1 Curso 2020-2021"
+author: 'Marc Cañellas, Eduardo Bonnin, Jaume Adrover, Joan Balaguer '
+date: '23/4/2021'
+output:
+  html_document: 
+    toc: yes
+  pdf_document: 
+    toc: yes
+    number_sections: yes
+urlcolor: blue
+toccolor: blue
+header-includes:
+  \renewcommand{\contentsname}{Contenidos}
+---
+
+```{r Imports Necesarios, include=FALSE}
+#Cargamos las librerias Tidyverse, ggplot2 y reshape2, que necesitaremos a lo 
+#largo de la practica
+library(tidyverse)
+library(ggplot2)
+library(reshape2)
+
+```
+
+1. Cargad  en un `dataframe` los datos del fichero  `listings.csv` (descomprimido a partir de `listings.csv.gz`).
+Esta tabla de datos  contiene datos sobre muchas variables:  
+   * `neighbourhood property_type`
+   * `accommodates` 
+   * `beds`
+   * `bedrooms`
+   * `bathrooms`
+   * `price`
+   * `security_deposit`
+   * `minimum_nights`
+   * `review_scores_rating`
+   * `number_of_reviews`
+   * `host_response_time`
+   * `requires_license`
+   * `review_scores_cleanliness`
+   * `cleaning_fee`
+   * `etc.`  
+Construid un nuevo `data frame` que contenga solo la información relativa a como mínimo 3 variables no numéricas y 7 variables numéricas.
+Hay que **escoger forma obligatoria las variables** `neighbourhood` y `price`.
+Las variables relativas a precioso (por ejemplo, `price` y `security_deposit`) se consideran numéricas,
+pero primero deben convertirse a valores numéricos eliminando los símbolos `$` o `€`; por ejemplo utilizando  la función ` gsub(pattern="[\\$]",replacement="",x="$10,000")`; haced (`help(gsub)`)
+
+2. Renombrar las columnas del `dataframe` con nombres en castellano o catalán.
+
+## Solución apartados 1 y 2
+
+A nuestro grupo (`Los Discretos`), le ha tocado la ciudad de Western Australia.
+Vamos a cargar los datos del documento de datos listing.csv en un data frame que 
+llamaremos `AUS`. En nuestro caso, este data frame estará conformado por las variables 
+cuantitativas `price`,`latitude`,`longitude`,`bedrooms`,`beds`,`acomodates` y `minimum_nights`,
+y las variables cualitativas `host_id`,`host_name`,`neighbourhood` y `host_location`
+del archivo de donde hemos leido los datos. En el aprtado 2, hemos modificado estos nombres
+y los hemos sustituido por sus respectivos nombres en español.
+
+```{r Solución Apartados 1 y 2}
+
+#Cargamos los Datos
+df=read.csv("listings.csv", header=TRUE)
+
+#Cuantitativas
+precio=as.numeric(gsub(pattern = "[\\$]|[,]",replacement = "", df$price))
+latitud=df$latitude
+longitud=df$longitude
+dormitorios=df$bedrooms
+camas=df$beds
+acomodaciones=df$accommodates
+noches_minimas=df$minimum_nights
+
+#Cualitativas
+id_anfitrion=df$host_id
+nombre_anfitrión=df$host_name
+vecindario=df$neighbourhood
+localización=df$host_location
+
+#Creamos nuestro Data Frame llamado AUS
+AUS = data.frame(precio,
+                 latitud,
+                 longitud,
+                 dormitorios,
+                 camas, 
+                 acomodaciones,
+                 noches_minimas,
+                 id_anfitrion,
+                 nombre_anfitrión,
+                 vecindario,
+                 localización
+                 )
+
+#Vemos la estructura general de nustro data frame
+str(AUS)
+```
+
+
+3. Para las variables numéricas, calcular los siguientes estadísticos y mostrar en una tabla los siguiente valores: cantidad de valores no válidos, mínimo, máximo, media, varianza, cuartiles y mediana.
+
+## Solución apartado 3
+```{r Apartado 3}
+#Hemos creado una funcion que implementa todos los calculos del apartado 3
+apartado3=function(x){
+    c(
+    #Media
+    media=mean(x,na.rm = TRUE),
+    #Mediana
+    mediana=median(x,na.rm = TRUE),
+    #Maximo
+    max=max(x,na.rm = TRUE),
+    #Mínimo
+    min=min(x,na.rm = TRUE),
+    #Cuartil0.25
+    cuantil1=quantile(x,0.25,na.rm = TRUE),
+    #Cuartil0.5
+    cuantil2=quantile(x,0.5,na.rm = TRUE),
+    #Cuartil0.75
+    cuantil3=quantile(x,0.75,na.rm = TRUE),
+    #Varianza
+    varianza=var(x,na.rm = TRUE)*(length(x)-1)/length(x),
+    #El numero de NA's
+    mumeroNA=ifelse(is.na(table(is.na(x))[2]),0,table(is.na(x))[2]))
+}
+
+#Aplicamos la función apartado3 con cada una de las variables cuantitativas elegidas
+salida= apply(AUS[,1:7], MARGIN = 2, FUN = apartado3)
+rownames(salida)=c("Media","Mediana","Maximo","Mínimo","Cuartil0.25","Cuartil0.5","Cuartil0.75","Varianza","Numero de NA's")
+knitr::kable(salida)
+```
+
+
+4. Para las variables no numéricas, generad las tablas de frecuencias absolutas de cada uno de sus valores.
+
+## Solución apartado 4
+```{r Apartado 4}
+#Frecuencias absolutas
+tabla1=sort(table(AUS$nombre_anfitrión, exclude = ""),decreasing = TRUE, na.rm=TRUE)[1:10]
+knitr::kable(tabla1, col.names = c("Nombres","Freq"))
+tabla2=sort(table(AUS$vecindario, exclude = ""),decreasing = TRUE,na.rm=TRUE)[1:10]
+knitr::kable(tabla2, col.names = c("Vecindarios","Freq"))
+tabla3=sort(table(AUS$localización, exclude = ""),decreasing = TRUE,na.rm=TRUE)[1:10]
+knitr::kable(tabla3, col.names = c("Localizaciones","Freq"))
+tabla4=sort(table(AUS$id_anfitrion, exclude = ""),decreasing = TRUE,na.rm=TRUE)[1:10]
+knitr::kable(tabla4, col.names = c("Identificadores","Freq"))
+```
+
+
+5. Dibujar diagramas de cajas(**boxplots **) e histogramas de todas las variables numéricas, mostrando un mínimo de 2 **boxplot** por fila. Ajustad la altura de los gráficos para que no queden demasiado pequeños.
+
+## Solución apartado 5
+```{r Apartado 5}
+
+#Boxplots de las variables cuantitativas 
+par(mfrow=c(2,2))
+
+boxplot(AUS$noches_minimas,main="Noches mínimas")
+boxplot(AUS$precio,main="Precio")
+boxplot(AUS$latitud,main="Latitud")
+boxplot(AUS$longitud,main="Longitud")
+boxplot(AUS$camas,main="Camas")
+boxplot(AUS$dormitorios,main="Dormitorios")
+boxplot(AUS$acomodaciones,main="Acomodaciones")
+
+par(mfrow=c(1,1))
+
+#Histogramas de las variables cuantitativas
+hist(AUS$id_anfitrion,main="Id_Anfitrión",xlab="Id de anfitrión",ylab="",col="red")
+
+hist(AUS$latitud,main="Histograma de latitudes",xlab="Latitud",ylab="",col="yellow")
+
+hist(AUS$longitud,main="Histograma de longitudes",xlab="Longitud",ylab="",col="green")
+
+barplot(table(AUS$dormitorios),col = "blue",main = "Gráfico de dormitorios",xlab = "Dormitorios",ylab="")
+
+hist(AUS$camas,main="Gráfico con el número de camas",xlab="Camas",col="cyan",ylab="")
+
+hist(AUS$acomodaciones,main="Nombre de acomodaciones",xlab="Acomodaciones",col="brown",ylab="")
+
+#Hacemos un barplot y no un histograma para la variable precio, ya que los datos se ven mucho más claros
+barplot(table(AUS$precio),main="Precios de las viviendas",xlab="Precios",ylim=c(0,200))
+```
+
+
+6. Dibuja un diagrama de tarta para una de las variables no numéricas
+agrupando como "Otros" los valores que representen un porcentaje inferior al 1\% del total.
+
+## Solución apartado 6
+```{r Apartado 6}
+#Pasamos la variable a un dato de tipo caracter
+var =as.character(AUS$localización)
+
+#Insertamos en una variabla la tabla de frecuencias relativas de localización
+tbl=prop.table(table(var))
+
+#Identificamos, que valores de la variable localización suponen menos del 5%
+#(hemos puesto los que suponen menos del 5% y no los que suponen el 1% porque 
+#el diagrama queda mucho mas claro)
+otros= names(tbl)[which(tbl<=0.05)]
+
+#Cambiamos los valores que suponen menos del 1% del total por el nombre "otros"
+var[var %in% otros]="otros"
+
+#Diagrama de pastel de la variable localización
+pie(prop.table(table(var)))
+```
+
+
+7. Calcular el valor medio de alguna de las variables numéricas según el barrio, de menor a mayor y sin tener en cuenta nombres de Barrio incorrectas ( `""` o `"N/A"`).
+
+## Solución apartado 7
+```{r Apartado 7}
+
+#Creamos nuestro dataframe modificado a partir de 2 variables
+d = data.frame(Barrio=AUS$vecindario,precio=AUS$precio )
+
+#Creamos un segundo dataframe donde relacionamos las variables Barrio y precio, haciendo la mediana
+Stats <- d %>% group_by(Barrio) %>% summarize(Media = mean(precio, na.rm = TRUE))
+
+#Ordenamos las 5 primeras medianas
+mediabaja=head(Stats %>% arrange(Media),5)
+mediaalta=head(Stats %>% arrange(desc(Media)),5)
+
+#Visualización
+mediabaja
+mediaalta
+```
+
+8. Dibuja un **boxplot** de la variable precio, para los 5 barrios más caros (precio medio más alto) y los 5 barrios más baratos (precio medio más bajo), en un mismo diagrama.
+Los **boxplots** deben indicar también el valor medio de los datos.
+
+## Solución apartado 8
+```{r Apartado 8}
+
+#Eliminamos el String "Western Australia,Australia" mediante un substring
+barrio2=substr(mediabaja$Barrio, 1, 8)
+Barrios=(gsub(pattern = "[\\W]|[,]",replacement = "", barrio2))
+
+
+#Boxplot de la media de los 5 más barrios más baratos
+p <- ggplot(mediabaja, aes(x=Barrios, y=Media)) + 
+  geom_boxplot()
+p
+
+#Asignamos a Barrios los nombres de los barrios más caros 
+barrio2=substr(mediaalta$Barrio, 1, 8)
+Barrios=barrio2
+
+#Boxplot de la media de los 5 barrios más caros
+q <- ggplot(mediaalta, aes(x=Barrios, y=Media)) + 
+  geom_boxplot()
+q
+```
+
+9. Para 4 de las variables numéricas dibujar los diagramas de dispersión dos a dos,
+con colores diferentes para cada barrio ( "neighbourhood").
+
+## Solución apartado 9
+```{r Apartado 9}
+# numero zonas
+n=length(unique(AUS$vecindario))
+n 
+
+par(mfrow=c(3,2))
+
+#Diagrama de dispersión Precio-Noches
+plot(AUS$precio,AUS$noches_minimas, main = "Dispersión Precio-Noches ",
+      pch = 21, bg = rainbow(n)[factor(AUS$vecindario)],xlab="Precio",ylab="Noches")
+
+#Diagrama de dispersión Precio-Latitud
+plot(AUS$precio,AUS$latitud, main = "Dispersión Precio-Latitud ",
+      pch = 21, bg = rainbow(n)[factor(AUS$vecindario)],xlab="Precio",ylab="Latitud")
+
+#Diagrama de dispersión Precio-Longitud 
+plot(AUS$precio,AUS$longitud, main = "Dispersión Precio-Longitud ",
+      pch = 21, bg = rainbow(n)[factor(AUS$vecindario)],xlab="Precio",ylab="Longitud")
+
+#Diagrama de dispersión Noches-Latitud
+plot(AUS$noches_minimas,AUS$latitud, main = "Dispersión Noches-Latitud ",
+      pch = 21, bg = rainbow(n)[factor(AUS$vecindario)],xlab="Noches",ylab="Latitud")
+
+#Diagrama de dispersión Noches-Longitud
+plot(AUS$noches_minimas,AUS$longitud, main = "Dispersión Noches-Longitud ",
+      pch = 21, bg = rainbow(n)[factor(AUS$vecindario)],xlab="Noches",ylab="Longitud")
+
+#Diagrama de dispersión Latitud-Longitud
+plot(AUS$latitud,AUS$longitud, main = "Dispersión Latitud-Longitud ",
+      pch = 21, bg = rainbow(n)[factor(AUS$vecindario)],xlab="Latitud",ylab="Longitud")
+
+par(mfrow=c(1,1))
+```
+
+10. Por las mismas variables elegidas en el apartado anterior calcular los coeficientes de correlación
+dos a dos de las variables, sin tener en cuenta los valores `NA`.
+
+## Solución apartado 10
+```{r Apartado 10}
+#Calculamos las correlaciones dos a dos para las variables anteriores
+cor1=na.omit(cor(AUS$noches_minimas,AUS$precio))
+cor1
+cor2=na.omit(cor(AUS$noches_minimas,AUS$longitud))
+cor2
+cor3=na.omit(cor(AUS$noches_minimas,AUS$latitud))
+cor3
+cor4=na.omit(cor(AUS$precio,AUS$latitud))
+cor4
+cor5=na.omit(cor(AUS$precio,AUS$longitud))
+cor5
+cor6=na.omit(cor(AUS$latitud,AUS$longitud))
+cor6
+```
+
+11. Selecciona dos variables numéricas, y para cada una de ellas organiza sus valores
+en un máximo de 5 intervalos con ala función `cut`.
+
+## Solución apartado 11
+```{r Apartado 11}
+#Hacemos subdivisiones de las variables precio y dormitorios
+corte1=cut(AUS$precio, breaks=c(0,100,200,300,600,Inf), include.lowest = TRUE)
+corte10=na.omit(corte1)
+corte10[1:10]
+corte2= cut(AUS$dormitorios, breaks=c(0,2,4,6,8,Inf), include.lowest = TRUE)
+corte20=na.omit(corte2)
+corte20[1:10]
+```
+
+12. A partir de los datos en intervalos obtenidos en el apartado anterior construid  una tabla de contingencia
+de las dos variables y dibuja el diagrama de mosaico asociado a la mesa.
+
+## Solución apartado 12
+```{r Apartado 12}
+#Tabla de contingencia de las variables que hemos creado en el apartado anterior
+table(corte10)
+table(corte20)
+
+#Diagrama de mosaico de las dos variables que hemos creado en el apartado anterior
+plot(corte2,corte1, col="purple",ylab="Dormitorios",xlab="Precio")
+```
+
+
+

@@ -1,0 +1,50 @@
+00001014 Starting Address
+Assembler used: EASy68K Editor/Assembler v5.16.01
+Created On: 12/04/2021 11:22:26
+
+00000000                             1  *-----------------------------------------------------------
+00000000                             2  * Title      :LAB5 SOLUTION
+00000000                             3  * Written by :JAUME ADROVER
+00000000                             4  * Date       :
+00000000                             5  * Description:
+00000000                             6  *-----------------------------------------------------------
+00001000                             7      ORG    $1000
+00001000  =00000005                  8  N: EQU 5
+00001000= 000A FFF1 FF9C 0...        9  V1: DC.W 10,-15,-100,89,-1
+0000100A                            10  V2: DS.W N
+00001014                            11  START:
+00001014  323C 0005                 12      MOVE.W #N,D1
+00001018  5341                      13      SUBQ.W #1,D1
+0000101A  43F8 100A                 14      LEA.L V2,A1
+0000101E  5A89                      15      ADDQ.L #N,A1
+00001020  247C 00000000             16      MOVEA.L #0,A2
+00001026                            17  LOOP:
+00001026  3021                      18      MOVE.w -(A1),D0
+00001028                            19  
+00001028  4640                      20      NOT.W D0
+0000102A  5240                      21      ADDQ.W #1,D0
+0000102C  3540 100A                 22      MOVE.W D0,V2(A2)
+00001030  544A                      23      ADDQ.W #2,A2
+00001032  51C9 FFF2                 24      DBRA D1,LOOP
+00001036                            25  
+00001036                            26                    
+00001036                            27  * Put program code here
+00001036                            28  
+00001036  FFFF FFFF                 29      SIMHALT             ; halt simulator
+0000103A                            30  
+0000103A                            31  * Put variables and constants here
+0000103A                            32  
+0000103A                            33      END    START        ; last line of source
+
+No errors detected
+No warnings generated
+
+
+SYMBOL TABLE INFORMATION
+Symbol-name         Value
+-------------------------
+LOOP                1026
+N                   5
+START               1014
+V1                  1000
+V2                  100A
