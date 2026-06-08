@@ -1,0 +1,354 @@
+00001162 Starting Address
+Assembler used: EASy68K Editor/Assembler v5.16.01
+Created On: 13/10/2022 14:50:37
+
+00000000                             1  ; =============================================================================
+00000000                             2  ; TITLE    : FIRST LAB ASSIGNMENT
+00000000                             3  ; AUTHOR   : ANTONI BURGUERA
+00000000                             4  ; COMMENTS : THIS FILE CANNOT BE MODIFIED
+00000000                             5  ; HISTORY  : 24/SEPTEMBER/2020 - CREATION
+00000000                             6  ; =============================================================================
+00000000                             7  
+00001000                             8              ORG     $1000
+00001000                             9  
+00001000                            10              ; --- CONSTANTS, MACROS AND CODE INCLUDES -------------------------
+00001000                            11  
+00001000                            12              INCLUDE "CONST.X68"             ; CONST. MUST BE BEFORE THEIR USE
+00001000                            13  ; =============================================================================
+00001000                            14  ; TITLE    : CONSTANTS
+00001000                            15  ; AUTHOR   : Joan Balaguer, Jaume Adrover
+00001000                            16  ; COMMENTS :
+00001000                            17  ; HISTORY  : 20/10/2021
+00001000                            18  ; =============================================================================
+00001000                            19  
+00001000  =00000002                 20  MAPGETAD EQU %00000010
+00001000                            21  
+00001000  =00000001                 22  MAPSHWHW EQU %00000001
+00001000  =00000001                 23  -------------------- end include --------------------
+00001000                            24              INCLUDE "MAP.X68"               ; MEMORY MAPPED HARDWARE CODE
+00001000                            25  ; =============================================================================
+00001000                            26  ; TITLE    : MEMORY MAPPED HARD CODE
+00001000                            27  ; AUTHOR   : Joan Balaguer, Jaume Adrover
+00001000                            28  ; COMMENTS :
+00001000                            29  ; HISTORY  : 08/10/2021
+00001000                            30  ; =============================================================================
+00001000                            31  
+00001000                            32  ; -----------------------------------------------------------------------------
+00001000                            33  MAPINIT
+00001000                            34  ; SHOWS HARDWARE WINDOW AND GETS MAPPING ADDRESSESG.
+00001000                            35  ; INPUT    - D0.B BIT 0: SHOW HARDWARE WINDOW (1: YES, 0: NO)
+00001000                            36  ;                 BIT 1: GET MAPPING ADDRESSES (1: YES, 0: NO)
+00001000                            37  ;                 BIT 2-7: NOT USED.
+00001000                            38  ;            A0 POINTER TO RAM ADDRESS TO STORE THE MAPPING ADDRESSES IN THIS
+00001000                            39  ;               ORDER: 7-SEGMENT, LEDS, SWITCHES, BUTTONS.
+00001000                            40  ;               IF D0.B BIT 1 IS ZERO, A0 IS NOT USED.
+00001000                            41  ; OUTPUT   - NO OUTPUT THROUGH REGISTERS
+00001000                            42  ;            RAM POINTED BY A0 IS MODIFIED IF D0.B BIT 1 IS 1
+00001000                            43  ; MODIFIES - NONE
+00001000                            44  ; -----------------------------------------------------------------------------
+00001000                            45       
+00001000  0800 0000                 46              BTST #0,D0                      ;COMPROVAM EL VALOR DEL PRIMER BIT DE D0
+00001004  6600 0006                 47              BNE  .SHWHW                     ;SI EL PRIMER BIT VAL 1, MOSTRAM LA FINESTRA DE HARDWARE I BOTAM A .SHWHW
+00001008  6000 0012                 48              BRA .BIT1_D0                    ;SI EL PRIMER BIT VAL 0, ANIREM A COMPROVAR EL VALOR DEL SEGON BIT I BOTAREM A .BIT1_D0
+0000100C                            49       
+0000100C                            50  .SHWHW                                            
+0000100C  48E7 C000                 51              MOVEM.L D0-D1,-(A7)             ;GUARDAM VALORS D0,D1 DINS PILA
+00001010  103C 0020                 52              MOVE.B #32, D0                  
+00001014  4201                      53              CLR.B D1
+00001016  4E4F                      54              TRAP #15                        ;MOSTRAR LA FINESTRA DE HARDWARE AMB TRAP15
+00001018  4CDF 0003                 55              MOVEM.L (A7)+,D0-D1             ;RESTAURAM VALORS D0,D1 GUARDATS ANTERIORMENT DINS LA PILA
+0000101C                            56  
+0000101C                            57  .BIT1_D0
+0000101C  48E7 C0C0                 58              MOVEM.L A0-A1/D0-D1,-(A7)       ;GUARDAM VALORS A0,A1 DINS PILA, FA FALTA EL VALOR DE D1?
+00001020  0800 0001                 59              BTST #1,D0                      ;COMPROVAM EL VALOR DEL SEGON BIT DE D0
+00001024  6700 0018                 60              BEQ .FIN
+00001028  43F9 00001044             61              LEA .VECT,A1                    ;CARREGAM LA DIRECCIÓ DE LA PRIMERA COMPONENT DEL VECTOR .VECT DINS A1
+0000102E                            62             
+0000102E                            63  .GETMAPADDR
+0000102E  1219                      64              MOVE.B (A1)+,D1                 ;MOVEM EL CONTINGUT DE LA COMPONENT QUE ESTIGUEM TRACTANT DEL VECTOR .VECT A D1 
+00001030  6700 000C                 65              BEQ .FIN                        ;SI HEM ARRIBAT AL FINAL DEL VECTOR, ACABAM L'ITERACIÓ
+00001034  103C 0020                 66              MOVE.B  #32,D0
+00001038  4E4F                      67              TRAP #15                        ;OBTENIM LES DIRECCIONS DE MAPATGE EN MEMÒRIA DEL PERIFÈRIC QUE ESTIGUEM TRACTANT
+0000103A  20C1                      68              MOVE.L D1,(A0)+                 ;GUARDAM LA DIRECCIÓ EN MEMÒRIA DEL PERIFÈRIC QUE ESTIGUEM TRACTANT
+0000103C  60F0                      69              BRA .GETMAPADDR
+0000103E                            70              
+0000103E                            71  .FIN         
+0000103E  4CDF 0303                 72              MOVEM.L (A7)+,A0-A1/D0-D1       ;RESTAURAM VALORS DINS PILA
+00001042  4E75                      73              RTS
+00001044                            74              
+00001044= 01 02 03 07 00            75  .VECT         DC.B 1,2,3,7,0                ;VECTOR QUE CONTÉ ELS PARÀMETRES DEL TRAP15
+0000104A                            76                DS.W 0
+0000104A                            77  
+0000104A                            78  ; -----------------------------------------------------------------------------
+0000104A                            79  MAPPRBIT
+0000104A                            80  ; PRINTS 'ZERO','ONE','TWO',...,'SEVEN' INTO THE 7-SEGMENT DISPLAYS DEPENDING
+0000104A                            81  ; ON THE BUTTON THAT IS PRESSED (ZERO IS THE RIGHTMOST, SEVEN IS THE LEFTMOST).
+0000104A                            82  ; PRINTS 'NONE' IF NO BUTTON IS PRESSED.
+0000104A                            83  ; INPUT    - A0 BUTTONS MAPPING ADDRESS
+0000104A                            84  ;            A1 7-SEGMENT DISPLAY MAPPING ADDRESS
+0000104A                            85  ; OUTPUT   - NONE THROUGH REGISTERS
+0000104A                            86  ; MODIFIES - NO REGISTER MODIFIED
+0000104A                            87  ; -----------------------------------------------------------------------------
+0000104A  =00000007                 88  CONTADOR EQU 7                        ;CONSTANT NOMBRE D'ITERACIONS
+0000104A                            89  
+0000104A  48E7 FF80                 90              MOVEM.L D0-D7/A0,-(A7)    ;GUARDAM VALORS REGISTRES DINS PILA
+0000104E  1010                      91              MOVE.B (A0),D0            ;INTRODUIM DINS D0 EL CONTINGUT DE LA ADREÇA DELS BOTONS
+00001050  4241                      92              CLR D1                    ;INICIALITZAM D1 A 0(SERVEIX PER GUARDAR NOMBRES DELS BOTONS)
+00001052  143C 0007                 93              MOVE.B #CONTADOR,D2       ;EMMAGATZEMAM A D2 EL NOMBRE D'ITERACIONS DEL BUCLE
+00001056  4EB9 00001138             94              JSR BITPOS                ;SALTAM A BITPOS PER A OBTENIR A D0 EL NOMBRE DEL BOTÓ PITJAT
+0000105C                            95              
+0000105C                            96  .LOOP       
+0000105C  B041                      97              CMP D1,D0                 ;MIRAM QUIN BOTÓ HA ESTAT PITJAT
+0000105E  6700 001A                 98              BEQ DISPLAY               ;SI HA ESTAT PITJAT EL BOTÓ ANAM A DISPLAY
+00001062  5201                      99              ADDQ.B #1,D1              ;ANAM COMPROVANT BOTÓ A BOTÓ, AUGMENTANT EL VALOR DE D1
+00001064  51CA FFF6                100              DBRA D2,.LOOP             ;BUCLE DBRA
+00001068                           101                          
+00001068  41F9 000010D2            102              LEA NONE,A0               ;SI NO HEM PITJAT CAP BOTÓ, 'NONE' SERÀ MOSTRAT
+0000106E  4EB9 000010DA            103              JSR STR2SEG               ;PASSAM STRING 'NONE' A 7 SEGMENTS
+00001074  4CDF 01FF                104              MOVEM.L (A7)+,D0-D7/A0    ;RESTAURAM VALORS DELS REGISTRES
+00001078  4E75                     105              RTS                       ;RETORNAM DE LA SUBRUTINA
+0000107A                           106              
+0000107A                           107  
+0000107A                           108  DISPLAY   
+0000107A  41F9 00001092            109              LEA .NUMBERS,A0           ;A0 CONTINDRÀ LA DIRECCIÓ DEL VECTOR DE NOMBRES
+00001080  C2FC 0008                110              MULU.W #8,D1              ;MULTIPLICAM EL NOMBRE OBTINGUT QUE SERVEIX D'ÍNDEX(No boto*8bytes)
+00001084  D0C1                     111              ADD.W D1,A0               ;FEIM AVANÇAR A A0 LES POSICIONS RESPECTIVES SEGONS EL BOTÓ PITJAT     
+00001086  4EB9 000010DA            112              JSR STR2SEG               ;CONVERTIM L'STRING OBTINGUT DESDE A0 A UNA VISUALITZACIÓ EN 7 SEGMENTS
+0000108C  4CDF 01FF                113              MOVEM.L (A7)+,D0-D7/A0    ;RESTAURAM ELS VALORS DELS REGISTRES
+00001090  4E75                     114              RTS                       ;RETORNAM DE LA SUBRUTINA
+00001092                           115              
+00001092                           116  
+00001092= 5A 45 52 4F 20 20 ...    117  .NUMBERS        DC.B   'ZERO    ','ONE     ','TWO     ','THREE   ','FOUR    ','FIVE    ','SIX     ','SEVEN   '
+000010D2                           118                  DS.W    0
+000010D2                           119            
+000010D2= 4E 4F 4E 45 20 20 ...    120  NONE            DC.B    'NONE    '
+000010DA                           121                  DS.W    0
+000010DA                           122  
+000010DA                           123  
+000010DA                           124          
+000010DA                           125              
+000010DA                           126              
+000010DA                           127                           
+000010DA                           128  
+000010DA                           129  
+000010DA                           130  
+000010DA                           131  
+000010DA                           132  
+000010DA                           133  
+000010DA                           134  
+000010DA                           135  
+000010DA                           136  
+000010DA                           137  
+000010DA                           138  
+000010DA                           139  
+000010DA                           140  
+000010DA                           141  
+000010DA                           142  
+000010DA                           143  
+000010DA                           144  
+000010DA                           145  
+000010DA                           146  
+000010DA                           147  
+000010DA                           148  
+000010DA                           149  
+000010DA                           150  
+000010DA                           151  
+000010DA                           152  
+000010DA                           153  
+000010DA                           154  
+000010DA                           155  
+000010DA                           156  -------------------- end include --------------------
+000010DA                           157              INCLUDE "AUXILIAR.X68"          ; AUXILIARY/MISCELLANY CODE
+000010DA                           158  ; =============================================================================
+000010DA                           159  ; TITLE    : AUXILIARY CODE
+000010DA                           160  ; AUTHOR   :Joan Balaguer, Jaume Adrover
+000010DA                           161  ; COMMENTS :
+000010DA                           162  ; HISTORY  :18/10/2021
+000010DA                           163  ; =============================================================================
+000010DA                           164  
+000010DA                           165  ; -----------------------------------------------------------------------------
+000010DA                           166  STR2SEG
+000010DA                           167  ; CONVERTS A STRING OF 8 CHARS INTO THE 7-SEGMENT DISPLAYS WORDS SEQUENCE,
+000010DA                           168  ; READY TO BE SENT TO THE DISPLAYS.
+000010DA                           169  ; ACCEPTS CHARACTERS FROM A TO Z AND FROM a TO z AND SPACE. CAPITAL AND NON
+000010DA                           170  ; CAPITAL ARE DISPLAYED WITH THE SAME GRAPHIC.
+000010DA                           171  ; INPUT    - A0 POINTER TO THE STRING (8 CHAR)
+000010DA                           172  ;            A1 POINTER TO THE ADDRESS WHERE TO PUT THE WORDS SEQUENCE
+000010DA                           173  ; OUTPUT   - MEMORY FROM (A1) TO (A0+15) MODIFIED.
+000010DA                           174  ; MODIFIES - NO REGISTERS MODIFIED
+000010DA                           175  ; NOTE     - BEHAVIOR IN FRONT OF CHARS OUTSIDE RANGES A-Z AND a-z AND SPACE
+000010DA                           176  ;            IS UNDEFINED
+000010DA                           177  ; -----------------------------------------------------------------------------
+000010DA  =00000007                178  .CONTADOR EQU 7 ;CONSTANT AMB NOMBRE ITERACIONS
+000010DA                           179  
+000010DA  48E7 C0E0                180              MOVEM.L D0-D1/A0-A2,-(A7)   ;PUSH,GUARDAM VALORS DINS PILA
+000010DE  323C 0007                181              MOVE.W #.CONTADOR,D1        ;ASSIGNAM VALOR AL REGISTRE CONTADOR
+000010E2                           182              
+000010E2                           183  .LOOP           
+000010E2                           184  
+000010E2  1018                     185              MOVE.B (A0)+,D0             ;PASSAM UNA LLETRA 
+000010E4  B07C 0020                186              CMP #32,D0                  ;COMPROVAM SI ÉS L'ESPAI
+000010E8  6700 0012                187              BEQ .ESPAI                  ;SI ÉS ESPAI BOTAM
+000010EC  B07C 0060                188              CMP #96,D0                  ;MIRAM SI ÉS MINÚSCULA (ASCII>96)
+000010F0  6E00 0010                189              BGT .MINUSCULA              ;SI EL CODI ÉS MINÚSCULA,BOTAM
+000010F4                           190  
+000010F4                           191              
+000010F4                           192  .MAJUSCULA
+000010F4                           193  
+000010F4  0400 0041                194              SUB.B #65,D0                ;RESTAM 65 A D0
+000010F8  6000 000C                195              BRA .MOSTRA                 ;SALTAM AL MÈTODE DE VISUALITZACIÓ 
+000010FC                           196              
+000010FC                           197  .ESPAI
+000010FC                           198  
+000010FC  5D00                     199              SUB.B #6,D0                 ;RESTAM 6 PER A SITUAR D0 AL FINAL DEL VECTOR
+000010FE  6000 0006                200              BRA .MOSTRA                 ;ANAM AL MÈTODE QUE MOSTRARÀ LES LLETRES PER STR2SEG
+00001102                           201              
+00001102                           202  .MINUSCULA
+00001102                           203  
+00001102  0400 0061                204              SUB.B #97,D0                ;RESTAM EL VALOR DE A MINÚSCULA, PER TAL D'OBTENIR UN NOMBRE 0-28
+00001106                           205  
+00001106                           206  .MOSTRA     
+00001106                           207  
+00001106  45F9 0000111C            208              LEA .CODISSEGM,A2           ;SITUAM EL CODI DE 7 SEGMENTS DE L'ABECEDARI A A2
+0000110C  12B2 0000                209              MOVE.B (A2,D0),(A1)         ;D0 ACTUA COM A ÍNDEX, SITUANT A A1 EL CODI DE LA LLETRA CORRESPONENT
+00001110  5449                     210              ADDQ #2,A1                  ;AVANÇAM A LA SEGÜENT POSICIÓ DELS VISUALITZADORS
+00001112  51C9 FFCE                211              DBRA D1,.LOOP               ;DBRA QUE CONTÉ 7 ITERACIONS
+00001116                           212              
+00001116                           213  
+00001116  4CDF 0703                214              MOVEM.L (A7)+,D0-D1/A0-A2   ;POP, RETORNAM ELS VALORS ALS REGISTRES
+0000111A  4E75                     215              RTS                         ;RETORNAM AL PROGRAMA QUE HA CRIDAT LA SUBRUTINA
+0000111C                           216              
+0000111C                           217  
+0000111C                           218  
+0000111C                           219  ;VECTOR QUE CONTÉ L'ABECEDARI CODIFICAT TAL QUE ES VISUALITZEN ELS GRAFEMES EN ELS SEGMENTS DE 7 VISUALITZADORS
+0000111C= 77 7C 39 5E 79 71 ...    220  .CODISSEGM  DC.B $77,$7C,$39,$5E,$79,$71,$3D,$76,$30,$1E,$76,$38,$37,$37,$3F,$73    
+0000112C= 3F 50 6D 78 3E 3E ...    221              DC.B $3F,$50,$6D,$78,$3E,$3E,$3E,$76,$6E,$5B,$00
+00001138                           222              DS.W 0
+00001138                           223              
+00001138                           224  ; -----------------------------------------------------------------------------
+00001138                           225  BITPOS
+00001138                           226  ; GIVEN A BYTE, IT RETURNS THE POSITION (VALUE BETWEEN 0 AND 7) OF THE RIGHT-
+00001138                           227  ; MOST BIT VALUED ONE. IF ALL BITS ARE ZERO, OUTPUTS 8
+00001138                           228  ; INPUT    - D0.B THE BYTE
+00001138                           229  ; OUTPUT   - D0.B THE BIT POSITION
+00001138                           230  ; MODIFIES - NO REGISTER, ASIDE OF D0.B
+00001138                           231  ; -----------------------------------------------------------------------------
+00001138                           232  
+00001138  =00000007                233  .N          EQU 7                       ;VARIABLE CONTADOR DBRA
+00001138                           234  
+00001138                           235  
+00001138  48E7 6000                236              MOVEM.L D1-D2,-(A7)         ;GUARDAM REGISTRES DINS LA PILA
+0000113C  4600                     237              NOT.B D0                    ;FEIM UNA NOT DEL REGISTRE JA QUE MIRAREM ELS BITS D'ESQUERRA CAP A DRETA
+0000113E  123C 0007                238              MOVE.B #.N,D1               ;ASSIGNAM CONTADOR
+00001142  4242                     239              CLR D2                      ;D2 SIRÀ EL REGISTRE DEL BIT POSICIONAT
+00001144                           240  
+00001144  0500                     241  .LOOP       BTST D2,D0                  ;SI EL BIT APUNTAT (D2) ES 1 SORTIM
+00001146  6600 0012                242              BNE .END            
+0000114A  5202                     243              ADDQ.B #1,D2                ;AUGMENTAM CONTADOR         
+0000114C  51C9 FFF6                244              DBRA D1,.LOOP               ;BUCLE DBRA
+00001150                           245              
+00001150  103C 0008                246  .ZERO       MOVE.B #8,D0                ;SI D2=0, RETORNAM 8          
+00001154  4CDF 0006                247              MOVEM.L (A7)+,D1-D2         ;RETORNAM VALORS ALS REGISTRES
+00001158  4E75                     248              RTS
+0000115A                           249              
+0000115A  1002                     250  .END        MOVE.B D2,D0                ;ASSIGNAM VALORS ALS REGISTRES
+0000115C  4CDF 0006                251              MOVEM.L (A7)+,D1-D2         ;RETORNAM VALORS ALS REGISTRES
+00001160  4E75                     252              RTS                         ;RETORNAM AL PROGRAMA QUE HA CRIDAT LA SUBRUTINA
+00001162                           253  
+00001162                           254  
+00001162                           255  
+00001162                           256  
+00001162                           257  
+00001162                           258  
+00001162                           259  
+00001162                           260  
+00001162                           261  
+00001162                           262  
+00001162                           263  
+00001162                           264  
+00001162                           265  -------------------- end include --------------------
+00001162                           266  
+00001162                           267              ; --- MAIN PROGRAM ------------------------------------------------
+00001162                           268  
+00001162                           269              ; --- INITIALIZATION
+00001162                           270  
+00001162  103C 0003                271  START       MOVE.B  #MAPGETAD|MAPSHWHW,D0   ; REQUEST HARD WIN AND ADDRESSES
+00001166  41F9 00001186            272              LEA     MAPADDR,A0              ; PREPARE STORAGE PARAMETER
+0000116C  4EB8 1000                273              JSR     MAPINIT                 ; SHOW WIN AND GET ADDRESSES
+00001170  2079 00001192            274              MOVE.L  (MAPBUTAD), A0          ; GET BUTTONS MAPPING ADDRESS
+00001176  2279 00001186            275              MOVE.L  (MAPSEGAD), A1          ; GET DISPLAYS MAPPING ADDRESS
+0000117C                           276  
+0000117C                           277              ; --- INFINITE LOOP
+0000117C                           278  
+0000117C  4EB8 104A                279  .LOOP       JSR     MAPPRBIT                ; UPDATE DISP. ACCORDING TO BUTTONS
+00001180  60FA                     280              BRA     .LOOP                   ; REPEAT UNTIL THE END OF TIMES
+00001182                           281  
+00001182                           282              ; --- END OF SIMULATION -------------------------------------------
+00001182                           283  
+00001182  FFFF FFFF                284              SIMHALT                         ; THIS LINE WILL NEVER BE REACHED
+00001186                           285  
+00001186                           286              ; --- VARIABLE DECLARATIONS ---------------------------------------
+00001186                           287  
+00001186                           288              INCLUDE "VARS.X68"
+00001186                           289  ; =============================================================================
+00001186                           290  ; TITLE    : VARIABLES
+00001186                           291  ; AUTHOR   : Joan Balaguer, Jaume Adrover
+00001186                           292  ; COMMENTS :
+00001186                           293  ; HISTORY  : 20/10/2021
+00001186                           294  ; =============================================================================
+00001186                           295  
+00001186                           296  MAPADDR 
+00001186                           297  
+00001186                           298  MAPSEGAD DS.L 1
+0000118A                           299  
+0000118A                           300  MAPLEDAD DS.L 1
+0000118E                           301  
+0000118E                           302  MAPSWTAD DS.L 1
+00001192                           303  
+00001192                           304  MAPBUTAD DS.L 1
+00001196                           305  
+00001196                           306  -------------------- end include --------------------
+00001196                           307  
+00001196                           308              END     START
+
+No errors detected
+No warnings generated
+
+
+SYMBOL TABLE INFORMATION
+Symbol-name         Value
+-------------------------
+BITPOS              1138
+BITPOS:END          115A
+BITPOS:LOOP         1144
+BITPOS:N            7
+BITPOS:ZERO         1150
+CONTADOR            7
+CONTADOR:LOOP       105C
+DISPLAY             107A
+DISPLAY:NUMBERS     1092
+MAPADDR             1186
+MAPBUTAD            1192
+MAPGETAD            2
+MAPINIT             1000
+MAPINIT:BIT1_D0     101C
+MAPINIT:FIN         103E
+MAPINIT:GETMAPADDR  102E
+MAPINIT:SHWHW       100C
+MAPINIT:VECT        1044
+MAPLEDAD            118A
+MAPPRBIT            104A
+MAPSEGAD            1186
+MAPSHWHW            1
+MAPSWTAD            118E
+NONE                10D2
+START               1162
+START:LOOP          117C
+STR2SEG             10DA
+STR2SEG:CODISSEGM   111C
+STR2SEG:CONTADOR    7
+STR2SEG:ESPAI       10FC
+STR2SEG:LOOP        10E2
+STR2SEG:MAJUSCULA   10F4
+STR2SEG:MINUSCULA   1102
+STR2SEG:MOSTRA      1106

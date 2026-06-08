@@ -1,0 +1,2553 @@
+00002264 Starting Address
+Assembler used: EASy68K Editor/Assembler v5.16.01
+Created On: 13/01/2022 13:57:49
+
+00000000                             1  ; =============================================================================
+00000000                             2  ; TITLE    : GAME OF LIFE APPLICATION
+00000000                             3  ; AUTHOR   : ANTONI BURGUERA
+00000000                             4  ; CREATION : 05-JULY-2021
+00000000                             5  ; =============================================================================
+00000000                             6  
+00001000                             7              ORG     $1000
+00001000                             8  
+00001000                             9  ; --- CODE INCLUDES -----------------------------------------------------------
+00001000                            10  
+00001000                            11              INCLUDE "SYSCONST.X68"          ; SYSTEM CONSTANTS
+00001000                            12  ; =============================================================================
+00001000                            13  ; TITLE    : SYSTEM CONSTANTS
+00001000                            14  ; AUTHOR   : ANTONI BURGUERA
+00001000                            15  ; HISTORY  : 05-JULY-2021 - CREATION
+00001000                            16  ; COMMENTS : * MOUVAL AND MOUEDGE FORMAT IS AS FOLLOWS:
+00001000                            17  ;              +---+---+---+---+---+---+---+---+
+00001000                            18  ;              | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
+00001000                            19  ;              +---+---+---+---+---+---+---+---+
+00001000                            20  ;              \-------------------/ |   |   |
+00001000                            21  ;                        |           |   |   +-- LEFT MOUSE BUTTON
+00001000                            22  ;                        |           |   +------ RIGHT MOUSE BUTTON
+00001000                            23  ;                        |           +---------- CENTRAL MOUSE BUTTON
+00001000                            24  ;                        +---------------------- 0
+00001000                            25  ;              A "1" IN ONE OF THESE BITS IN MOUVAL MEANS "BUTTON PRESSED".
+00001000                            26  ;              A "0" IN ONE OF THESE BITS IN MOUVAL MEANS "BUTTON NOT PRESSED".
+00001000                            27  ;              A "1" IN ONE OF THESE BITS IN MOUEDGE MEANS "BUTTON CLICKED".
+00001000                            28  ;              A "0" IN ONE OF THESE BITS IN MOUEDGE MEANS "BUTTON NOT CLICKED".
+00001000                            29  ;              A "CLICK" IS A CHANGE FROM 0 TO 1 IN SUBSEQUENT UPDATES.
+00001000                            30  ;              BOTH MOUVEL AND MOUEDGE ARE UPDATED BY TRAP #MOUTRAP
+00001000                            31  ;
+00001000                            32  ;            * MASKS AND BIT POSITIONS ARE DEFINED TO EASE MOUSE ACCESS. FOR
+00001000                            33  ;              EXAMPLE, ONE CAN DO THE FOLLOWING TO CHECK IF THE LEFT BUTTON
+00001000                            34  ;              IS PRESSED:
+00001000                            35  ;
+00001000                            36  ;              BTST.L #MOUBITLF,(MOUVAL)
+00001000                            37  ;              BNE ...
+00001000                            38  ;
+00001000                            39  ;              ALTERNATIVELY, ONE CAN ALSO DO THE FOLLOWING DEPENDING ON THE
+00001000                            40  ;              CONTEXT:
+00001000                            41  ;
+00001000                            42  ;              MOVE.B  (MOUVAL),D0
+00001000                            43  ;              AND.B   #MOUMSKLF,D0
+00001000                            44  ;              BNE ...
+00001000                            45  ; =============================================================================
+00001000                            46  
+00001000                            47  ; --- SCREEN RELATED CONSTANTS ------------------------------------------------
+00001000                            48  
+00001000  =00000000                 49  SCRTRAP     EQU     0                       ; SCREEN REFRESH TRAP NUMBER
+00001000  =00000320                 50  SCRWIDTH    EQU     800                     ; SCREEN WIDTH (PIXELS)
+00001000  =00000258                 51  SCRHEIGH    EQU     600                     ; SCREEN HEIGHT (PIXELS)
+00001000                            52  
+00001000                            53  ; --- MOUSE RELATED CONSTANTS -------------------------------------------------
+00001000                            54  
+00001000  =00000001                 55  MOUTRAP     EQU     1                       ; MOUSE QUERY TRAP NUMBER
+00001000  =00000001                 56  MOUMSKLF    EQU     %00000001               ; LEFT MOUSE BUTTON MASK
+00001000  =00000002                 57  MOUMSKRT    EQU     %00000010               ; RIGHT MOUSE BUTTON MASK
+00001000  =00000004                 58  MOUMSKMD    EQU     %00000100               ; MIDDLE MOUSE BUTTON MASL
+00001000  =00000000                 59  MOUBITLF    EQU     0                       ; LEFT MOUSE BUTTON BIT POSITION
+00001000  =00000001                 60  MOUBITRT    EQU     1                       ; RIGHT MOUSE BUTTON BIT POSITION
+00001000  =00000002                 61  MOUBITMD    EQU     2                       ; MIDDLE MOUSE BUTTON BIT POSITION
+00001000  =00000002                 62  -------------------- end include --------------------
+00001000                            63              INCLUDE "SYSTEM.X68"            ; SYSTEM CODE
+00001000                            64  ; =============================================================================
+00001000                            65  ; TITLE    : SYSTEM MANAGEMENT (SYSTEM CODE)
+00001000                            66  ; AUTHOR   : ANTONI BURGUERA
+00001000                            67  ; HISTORY  : 05-JULY-2021 - CREATION
+00001000                            68  ; COMMENTS : IT IS DIVIDED IN THREE BLOCKS:
+00001000                            69  ;            - SYS : GENERIC.
+00001000                            70  ;            - SCR : SCREEN MANAGEMENT.
+00001000                            71  ;            - MOU : MOUSE MANAGEMENT
+00001000                            72  ;            THE FORMAT OF MOUVAL AND MOUEDGE IS DESCRIBED IN SYSCONST.
+00001000                            73  ; =============================================================================
+00001000                            74  
+00001000                            75  ; -----------------------------------------------------------------------------
+00001000                            76  SYSINIT
+00001000                            77  ; INITIALIZES THE SYSTEM AS FOLLOWS:
+00001000                            78  ; * DISABLES INTERRUPTS
+00001000                            79  ; * CALLS SCRINIT
+00001000                            80  ; * CALLS MOUINIT
+00001000                            81  ; * ENABLES SIMULATOR EXCEPTION PROCESSING
+00001000                            82  ; * SWITCHES TO USER
+00001000                            83  ; INPUT    - NONE
+00001000                            84  ; OUTPUT   - NONE
+00001000                            85  ; MODIFIES - NONE
+00001000                            86  ; NOTE     - NOTE THAT INTERRUPTS REMAIN DISABLED AFTER THIS SUBROUTINE
+00001000                            87  ; -----------------------------------------------------------------------------
+00001000                            88  
+00001000                            89  ; TODO : PLACE YOUR CODE HERE
+00001000                            90  
+00001000  40E7                      91      MOVE.W SR,-(A7)
+00001002                            92  
+00001002  0257 DFFF                 93      AND.W #$DFFF,(A7)
+00001006                            94  
+00001006  0057 0700                 95      OR.W #$0700,(A7)
+0000100A                            96  
+0000100A                            97      ;GUARDAM REGISTRES
+0000100A  48E7 C000                 98      MOVEM.L D0-D1, -(A7)
+0000100E                            99  
+0000100E                           100      ;DESACTIVAR INTERRUPCIONS
+0000100E                           101      ;OR.W #$0700,SR
+0000100E                           102  
+0000100E                           103      ;CRIDAR A SCRINIT I MOUINIT
+0000100E  4EB9 0000108A            104      JSR SCRINIT
+00001014  4EB9 0000102A            105      JSR MOUINIT
+0000101A                           106  
+0000101A                           107      ;ACTIVAR SIMULADOR DE EXEPCIO
+0000101A  103C 0020                108      MOVE.B #32,D0
+0000101E  123C 0005                109      MOVE.B #5,D1
+00001022  4E4F                     110      TRAP #15
+00001024                           111  
+00001024                           112  
+00001024                           113      ;RESTAURAM REGISTRES
+00001024  4CDF 0003                114      MOVEM.L (A7)+,D0-D1
+00001028                           115  
+00001028                           116      ;RTE, RESTAURA SR I PC
+00001028  4E73                     117      RTE
+0000102A                           118  
+0000102A                           119  
+0000102A                           120  
+0000102A                           121  
+0000102A                           122  ; =============================================================================
+0000102A                           123  ; MOUSE MANAGEMENT (SYSTEM CODE)
+0000102A                           124  ; =============================================================================
+0000102A                           125  
+0000102A                           126  ; -----------------------------------------------------------------------------
+0000102A                           127  MOUINIT
+0000102A                           128  ; INITIALIZES MOUSE AS FOLLOWS:
+0000102A                           129  ; * STORES CURRENT MOUSE POSITION AND BUTTON STATUS INTO MOUY, MOUX AND MOUVAL
+0000102A                           130  ; * CLEARS MOUEDGE
+0000102A                           131  ; * INSTALLS MOUREAD INTO TRAP #MOUTRAP
+0000102A                           132  ; INPUT    - NONE
+0000102A                           133  ; OUTPUT   - NONE
+0000102A                           134  ; MODIFIES - ALL REGISTERS CAN BE MODIFIED
+0000102A                           135  ; -----------------------------------------------------------------------------
+0000102A                           136  
+0000102A                           137  ; TODO : PLACE YOUR CODE HERE
+0000102A                           138              
+0000102A  48E7 C000                139       MOVEM.L D0-D1, -(A7)
+0000102E                           140  
+0000102E                           141      ;OBTENIM POSICIO RATOLI
+0000102E  103C 003D                142      MOVE.B #61,D0
+00001032  4201                     143      CLR.B D1
+00001034  4E4F                     144      TRAP #15
+00001036                           145  
+00001036                           146      ;LA GUARDAM
+00001036                           147      ;BASTA AIXO? ES GUARDA A
+00001036                           148      ;MOUY MOUX Y MOUVAL CORRECTAMENT
+00001036  23C1 0000227E            149      MOVE.L D1,(MOUY)
+0000103C  13C0 00002282            150      MOVE.B D0,(MOUVAL)
+00001042                           151  
+00001042                           152  
+00001042                           153      ;CLEAR MOUEDGE ?
+00001042  13FC 0000 00002283       154      MOVE.B #0,(MOUEDGE)
+0000104A                           155  
+0000104A                           156  
+0000104A                           157      ;INSTALL MOUREAD INTO TRAP #MOUTRAP ?
+0000104A  21FC 00001058 0084       158      MOVE.L #MOUREAD,($80+MOUTRAP*4)
+00001052                           159  
+00001052                           160  
+00001052                           161      ;RESTAURAM I TORNAM
+00001052  4CDF 0003                162      MOVEM.L (A7)+, D0-D1
+00001056  4E75                     163      RTS
+00001058                           164  
+00001058                           165  
+00001058                           166  ; -----------------------------------------------------------------------------
+00001058                           167  MOUREAD
+00001058                           168  ; MOUSE READING TRAP SERVICE ROUTINE. IT DOES THE FOLLOWING:
+00001058                           169  ; * STORES CURRENT MOUSE POSITION INTO MOUY AND MOUX.
+00001058                           170  ; * STORES CURRENT BUTTON STATUS INTO MOUVAL
+00001058                           171  ; * COMPUTES AND STORES MOUEDGE
+00001058                           172  ; INPUT    - NONE
+00001058                           173  ; OUTPUT   - NONE
+00001058                           174  ; MODIFIES - NONE
+00001058                           175  ; -----------------------------------------------------------------------------
+00001058                           176  
+00001058                           177  ; TODO : PLACE YOUR CODE HERE
+00001058                           178  
+00001058  48E7 E000                179              MOVEM.L D0-D2,-(A7)
+0000105C                           180              
+0000105C  103C 003D                181              MOVE.B #61,D0
+00001060  4241                     182              CLR.W     D1
+00001062  4E4F                     183              TRAP #15 ;STORE CURRENT MOUSE POSITION IN D1.L(Y,X), D0.B(XXXX210)
+00001064                           184              
+00001064  23C1 0000227E            185              MOVE.L D1,(MOUY)
+0000106A                           186              ;VERIFICAMOS SI DEBEMOS CAMBIAR EL MOUEDGE
+0000106A  4639 00002282            187              NOT.B MOUVAL
+00001070  1400                     188              MOVE.B D0,D2
+00001072                           189              
+00001072                           190              ;MIRAMOS SI HA CAMBIADO DE 0 A 1
+00001072  C439 00002282            191              AND.B  MOUVAL,D2
+00001078  13C2 00002283            192              MOVE.B D2,(MOUEDGE)
+0000107E  13C0 00002282            193              MOVE.B D0,(MOUVAL)
+00001084                           194              
+00001084                           195              
+00001084                           196              
+00001084                           197              ;MASCARA BITS(TOTS MENYS ELS 3 DARRERS)
+00001084                           198              ;MOVE.B D0,(MOUVAL)
+00001084                           199              
+00001084                           200              
+00001084  4CDF 0007                201              MOVEM.L (A7)+,D0-D2
+00001088                           202              
+00001088  4E73                     203              RTE
+0000108A                           204  
+0000108A                           205  
+0000108A                           206  
+0000108A                           207  
+0000108A                           208  
+0000108A                           209  
+0000108A                           210  
+0000108A                           211  
+0000108A                           212  
+0000108A                           213  ; =============================================================================
+0000108A                           214  ; SCREEN MANAGEMENT (SYSTEM CODE)
+0000108A                           215  ; =============================================================================
+0000108A                           216  
+0000108A                           217  ; -----------------------------------------------------------------------------
+0000108A                           218  SCRINIT
+0000108A                           219  ; INITIALIZES THE SCREEN, SCREEN-RELATED INTERRUPT AND VARS AS FOLLOWS:
+0000108A                           220  ; * INSTALLS SCRUPD INTO TRAP #SCRTRAP
+0000108A                           221  ; * SETS OUTPUT RESOLUTION TO SCRWIDTH*SCRHEIGH
+0000108A                           222  ; * SETS OUTPUT TO WINDOWED MODE
+0000108A                           223  ; * ENABLES DOUBLE BUFFER AND CLEARS BOTH SCREEN BUFFERS
+0000108A                           224  ; INPUT    - NONE
+0000108A                           225  ; OUTPUT   - NONE
+0000108A                           226  ; MODIFIES - ALL REGISTERS CAN BE MODIFIED
+0000108A                           227  ; -----------------------------------------------------------------------------
+0000108A  21FC 000010C2 0080       228              MOVE.L  #SCRUPD,($80+SCRTRAP*4) ; INSTALL TRAP
+00001092  223C 03200258            229              MOVE.L  #SCRWIDTH<<16|SCRHEIGH,D1 ; SET RESOLUTION
+00001098  103C 0021                230              MOVE.B  #33,D0
+0000109C  4E4F                     231              TRAP    #15
+0000109E  7201                     232              MOVE.L  #1,D1                   ; SET WINDOWED MODE
+000010A0  4E4F                     233              TRAP    #15
+000010A2  323C FF00                234              MOVE.W  #$FF00,D1               ; CLEAR VISIBLE BUFFER
+000010A6  103C 000B                235              MOVE.B  #11,D0
+000010AA  4E4F                     236              TRAP    #15
+000010AC  123C 0011                237              MOVE.B  #17,D1                  ; ENABLE DOUBLE BUFFER
+000010B0  103C 005C                238              MOVE.B  #92,D0
+000010B4  4E4F                     239              TRAP    #15
+000010B6  323C FF00                240              MOVE.W  #$FF00,D1               ; CLEAR HIDDEN BUFFER
+000010BA  103C 000B                241              MOVE.B  #11,D0
+000010BE  4E4F                     242              TRAP    #15
+000010C0  4E75                     243              RTS
+000010C2                           244  
+000010C2                           245  ; -----------------------------------------------------------------------------
+000010C2                           246  SCRUPD
+000010C2                           247  ; TRAP SERVICE ROUTINE IN CHARGE OF VISUALIZING CURRENT FRAME AND CLEARING
+000010C2                           248  ; BUFFER FOR THE NEXT ONE. PERFORMS TWO TASKS:
+000010C2                           249  ; * CLEARS ACTIVE (HIDDEN) GRAPHICS BUFFER
+000010C2                           250  ; * SWITCHES ACTIVE AND VISIBLE GRAPHICS BUFFER
+000010C2                           251  ; INPUT    - NONE
+000010C2                           252  ; OUTPUT   - NONE
+000010C2                           253  ; MODIFIES - NONE
+000010C2                           254  ; -----------------------------------------------------------------------------
+000010C2  48A7 C000                255              MOVEM.W D0-D1,-(A7)
+000010C6  103C 005E                256              MOVE.B  #94,D0                  ; UPDATE DOUBLE BUFFER
+000010CA  4E4F                     257              TRAP    #15
+000010CC  323C FF00                258              MOVE.W  #$FF00,D1               ; CLEAR HIDDEN BUFFER
+000010D0  103C 000B                259              MOVE.B  #11,D0
+000010D4  4E4F                     260              TRAP    #15
+000010D6  4C9F 0003                261              MOVEM.W (A7)+,D0-D1
+000010DA  4E73                     262              RTE
+000010DC                           263  
+000010DC                           264  
+000010DC                           265  
+000010DC                           266  
+000010DC                           267  -------------------- end include --------------------
+000010DC                           268              INCLUDE "CONST.X68"             ; USER CONSTANTS
+000010DC                           269  ; =============================================================================
+000010DC                           270  ; TITLE    : USER CONSTANTS
+000010DC                           271  ; AUTHOR   : ANTONI BURGUERA
+000010DC                           272  ; HISTORY  : 05-JULY-2021 - CREATION
+000010DC                           273  ; COMMENTS : * MOST OF THE CONSTANTS HELP IN PRODUCING A CLEAN CODE
+000010DC                           274  ;              IN ACCORDANCE TO THE ASSIGNMENT SPECS, THOUGH THEIR USE IS
+000010DC                           275  ;              NOT MANDATORY AS LONG AS THE ASSIGNMENT SPECS ARE FOLLOWED.
+000010DC                           276  ;
+000010DC                           277  ;            * THE UICOLORS ARE THE BASIC USER INTERFACE COLORS. USING THEM
+000010DC                           278  ;              WILL LEAD TO A VISUALLY CONSISTENT USER INTERFACE.
+000010DC                           279  ;
+000010DC                           280  ;            * THE CHARACTER SIZES SPECIFY WIDTH AND HEIGHT IN PIXELS OF THE
+000010DC                           281  ;              TEXT CHARACTERS. THIS SIZE DEPENDS ON THE SYSTEM (WINDOWS) FONTS
+000010DC                           282  ;              AND CAN CHANGE FROM ONE COMPUTER TO ANOTHER. FEEL FREE TO ADAPT
+000010DC                           283  ;              THEM TO YOUR OWN COMPUTER.
+000010DC                           284  ;
+000010DC                           285  ;            * CHARACTER SIZES ARE SPECIFIED AS AN EXPONENT AND THE SIZE ITSELF
+000010DC                           286  ;              THE EXPONENT IS USEFUL TO MULTIPLY/DIVIDE, WHEN NECESSARY,
+000010DC                           287  ;              USING SHIFTS. DEPENDING ON YOUR SYSTEM (WINDOWS) FONTS, CHAR
+000010DC                           288  ;              SIZES MAY NOT BE POWER OF TWO. IF THIS IS THE CASE, DO YOUR BEST
+000010DC                           289  ;              TO AVOID MULU AND DIVU.
+000010DC                           290  ;
+000010DC                           291  ;            * MOST OF THE GRD CONSTANTS ARE EXPRESSIONS TO EASE TESTING
+000010DC                           292  ;              DIFFERENT RESOLUTIONS. IF TESTS WITH OTHER RESOLUTIONS ARE
+000010DC                           293  ;              PERFORMED, TAKE INTO ACCOUNT THAT ALL EXPRESSIONS MUST EVALUATE
+000010DC                           294  ;              TO INTEGER. IF THEY DON'T, UNEXPECTED RESULTS CAN HAPPEN.
+000010DC                           295  ; =============================================================================
+000010DC                           296  
+000010DC                           297  ; --- UI COLORS ---------------------------------------------------------------
+000010DC                           298  
+000010DC  =00000000                299  CLRBLACK    EQU     $00000000               ; BLACK
+000010DC  =00FFFFFF                300  CLRWHITE    EQU     $00FFFFFF               ; WHITE
+000010DC  =00005500                301  CLRDKGRN    EQU     $00005500               ; DARK GREEN
+000010DC  =00006600                302  CLRMDGRN    EQU     $00006600               ; MEDIUN GREEN
+000010DC  =0000AA00                303  CLRLTGRN    EQU     $0000AA00               ; LIGHT GREEN
+000010DC  =00FF0000                304  CLRLTBLU    EQU     $00FF0000               ; LIGHT BLUE
+000010DC  =000000FF                305  CLRLTRED    EQU     $000000FF               ; LIGHT RED
+000010DC                           306  
+000010DC                           307  ; --- CHARACTER SIZES ---------------------------------------------------------
+000010DC                           308  
+000010DC  =00000004                309  CHRSHHEI    EQU     4                       ; CHARACTER HEIGHT AS EXPONENT OF 2
+000010DC  =00000003                310  CHRSHWID    EQU     3                       ; CHARACTER WIDTH AS EXPONENT OF 2
+000010DC  =00000010                311  CHRHEIGH    EQU     1<<CHRSHHEI             ; CHARACTER HEIGHT
+000010DC  =00000008                312  CHRWIDTH    EQU     1<<CHRSHWID             ; CHARACTER WIDTH
+000010DC                           313  
+000010DC                           314  ; --- BUTTON ------------------------------------------------------------------
+000010DC                           315  
+000010DC  =00000004                316  BTNPENWD    EQU     4                       ; BUTTON LINE WIDTH
+000010DC  =00005500                317  BTNPENCL    EQU     CLRDKGRN                ; BUTTON LINE COLOR
+000010DC  =0000AA00                318  BTNSELCL    EQU     CLRLTGRN                ; BUTTON SELECTED FILL COLOR
+000010DC  =00006600                319  BTNPRSCL    EQU     CLRMDGRN                ; BUTTON PRESSED FILL COLOR
+000010DC  =00000006                320  BTNSZVDB    EQU     6                       ; SIZE (BYTES) OF VDB
+000010DC                           321  
+000010DC                           322  ; --- BUTTON LIST -------------------------------------------------------------
+000010DC                           323  
+000010DC  =0000000A                324  BTLMXVDB    EQU     10                      ; SIZE OF THE BUTTON LIST (ITEMS)
+000010DC  =00000028                325  BTLVERSZ    EQU     40                      ; HEIGHT OF BUTTONS
+000010DC  =0000000A                326  BTLVEMRG    EQU     10                      ; VERTICAL VISUAL MARGIN (TOP&BOT)
+000010DC  =0000000A                327  BTLHOMRG    EQU     10                      ; HORIZONTAL VISUAL MARGIN (L & R)
+000010DC                           328  
+000010DC                           329  ; --- APPLICATION -------------------------------------------------------------
+000010DC                           330  
+000010DC  =00000000                331  GOLSPAUS    EQU     0                       ; PAUSED STATE
+000010DC  =00000001                332  GOLSEXEC    EQU     1                       ; EXECUTION STATE
+000010DC  =000000FA                333  GOLMAXGN    EQU     250                     ; MAXIMUM NUMBER OF GENERATIONS
+000010DC                           334  
+000010DC                           335  ; --- GRID --------------------------------------------------------------------
+000010DC                           336  
+000010DC  =00FF0000                337  GRDCOLP1    EQU     CLRLTBLU                ; PLAYER 1 COLOR
+000010DC  =000000FF                338  GRDCOLP2    EQU     CLRLTRED                ; PLAYER 2 COLOR
+000010DC  =00000006                339  GRDSHWID    EQU     6                       ; SHIFT TO ACHIEVE GRDWIDTH
+000010DC  =00000005                340  GRDSHHEI    EQU     5                       ; SHIFT TO ACHIEVE GRDHEIGH
+000010DC  =00000040                341  GRDWIDTH    EQU     1<<GRDSHWID             ; NUMBER OF GRID COLUMNS
+000010DC  =00000020                342  GRDHEIGH    EQU     1<<GRDSHHEI             ; NUMBER OF ROWS
+000010DC  =0000003F                343  GRDMSWID    EQU     GRDWIDTH-1              ; MASK TO GET X FROM GRID OFFSET
+000010DC  =0000001F                344  GRDMSHEI    EQU     GRDHEIGH-1              ; MASK TO GET Y FROM GRID OFFSET
+000010DC  =00000300                345  GRDPXWID    EQU     768                     ; GRID DISPLAY WIDTH (PIXELS)
+000010DC  =00000180                346  GRDPXHEI    EQU     GRDHEIGH*GRDPXWID/GRDWIDTH ; GRID DISPLAY HEIGHT (PIXELS)
+000010DC  =0000000C                347  GRDSZCEL    EQU     GRDPXWID/GRDWIDTH       ; GRID CELL SIZE (PIXELS)
+000010DC  =0000006E                348  GRDVEMRG    EQU     3*BTLVEMRG+2*BTLVERSZ   ; TOP MARGIN (2 BUTTON ROWS)
+000010DC  =00000010                349  GRDXOFF     EQU     (SCRWIDTH-GRDPXWID)/2   ; X OFFSETS TO DISPLAY CENTERED GRID
+000010DC  =0000009E                350  GRDYOFF     EQU     (SCRHEIGH-GRDPXHEI+GRDVEMRG-BTLVEMRG)/2 ; Y OFFSET CENT. GRD
+000010DC  =00000002                351  GRDSCP1X    EQU     GRDXOFF/CHRWIDTH        ; PLAYER 1 SCORE X (CHAR RESOL.)
+000010DC  =00000009                352  GRDSCP1Y    EQU     GRDYOFF/CHRHEIGH        ; PLAYER 1 SCORE Y (CHAR RESOL.)
+000010DC  =0000005E                353  GRDSCP2X    EQU     (GRDXOFF+GRDPXWID)/CHRWIDTH-4 ; PLAYER 2 SCORE X (CHAR RES.)
+000010DC  =00000009                354  GRDSCP2Y    EQU     GRDYOFF/CHRHEIGH        ; PLAYER 2 SCORE Y (CHAR RESOL.)
+000010DC  =00000030                355  GRDSCNGX    EQU     (SCRWIDTH/(CHRWIDTH*2))-2 ; NUM. GENER. X (CHAR RESOL.)
+000010DC  =00000009                356  GRDSCNGY    EQU     GRDYOFF/CHRHEIGH        ; NUM. GENER. Y (CHAR RESOL.)
+000010DC  =00000009                357  -------------------- end include --------------------
+000010DC                           358              INCLUDE "UTIL.X68"              ; UTILITY CODE
+000010DC                           359  ; =============================================================================
+000010DC                           360  ; TITLE    : UTILITY SUBROUTINES
+000010DC                           361  ; AUTHOR   : ANTONI BURGUERA
+000010DC                           362  ; HISTORY  : 05-JULY-2021 - CREATION
+000010DC                           363  ; COMMENTS : GENERAL PURPOSE SUBROUTINES.
+000010DC                           364  ; =============================================================================
+000010DC                           365  
+000010DC                           366  ; -----------------------------------------------------------------------------
+000010DC                           367  UTLINIT
+000010DC                           368  ; INITIALIZES UTILITIES.
+000010DC                           369  ; INPUT    : NONE
+000010DC                           370  ; OUTPUT   : NONE
+000010DC                           371  ; MODIFIES : NONE
+000010DC                           372  ; -----------------------------------------------------------------------------
+000010DC  4239 00002284            373              CLR.B   (UTLRNDIX)
+000010E2  4E75                     374              RTS
+000010E4                           375  
+000010E4                           376  ; -----------------------------------------------------------------------------
+000010E4                           377  UTLSTRLN
+000010E4                           378  ; COMPUTES THE LENGTH OF A ZERO-TERMINATED STRING
+000010E4                           379  ; INPUT    - A1 POINTER TO THE STRING
+000010E4                           380  ; OUTPUT   - D0.W STRING LENGTH
+000010E4                           381  ; MODIFIES - NONE (ASIDE OF OUTPUT)
+000010E4                           382  ; -----------------------------------------------------------------------------
+000010E4  2F09                     383              MOVE.L  A1,-(A7)
+000010E6  4240                     384              CLR.W   D0
+000010E8  4A19                     385  .LOOP       TST.B   (A1)+
+000010EA  6700 0006                386              BEQ     .END
+000010EE  5240                     387              ADDQ.W  #1,D0
+000010F0  60F6                     388              BRA     .LOOP
+000010F2  225F                     389  .END        MOVE.L  (A7)+,A1
+000010F4  4E75                     390              RTS
+000010F6                           391  
+000010F6                           392  ; -----------------------------------------------------------------------------
+000010F6                           393  UTLRAND
+000010F6                           394  ; PROVIDES A PSEUDO-RANDOM COIN FLIP (RETURNS 1 OR 2)
+000010F6                           395  ; INPUT    - NONE
+000010F6                           396  ; OUTPUT   - D1.L RANDOM VALUE (ONLY BYTE)
+000010F6                           397  ; MODIFIES - NONE (ASIDE OF OUTPUT)
+000010F6                           398  ; -----------------------------------------------------------------------------
+000010F6  2F08                     399              MOVE.L  A0,-(A7)
+000010F8  41F9 00001114            400              LEA     .RANDVEC,A0
+000010FE  4281                     401              CLR.L   D1
+00001100  1239 00002284            402              MOVE.B  (UTLRNDIX),D1
+00001106  1230 1800                403              MOVE.B  (A0,D1.L),D1
+0000110A  5239 00002284            404              ADDQ.B  #1,(UTLRNDIX)
+00001110  205F                     405              MOVE.L  (A7)+,A0
+00001112  4E75                     406              RTS
+00001114                           407  
+00001114= 02 02 02 02 01 02 ...    408  .RANDVEC    DC.B    2, 2, 2, 2, 1, 2, 1, 2
+0000111C= 01 01 01 02 01 01 ...    409              DC.B    1, 1, 1, 2, 1, 1, 1, 2
+00001124= 02 01 02 01 01 02 ...    410              DC.B    2, 1, 2, 1, 1, 2, 2, 1
+0000112C= 02 01 02 01 01 01 ...    411              DC.B    2, 1, 2, 1, 1, 1, 1, 2
+00001134= 02 02 01 01 02 02 ...    412              DC.B    2, 2, 1, 1, 2, 2, 1, 1
+0000113C= 02 01 02 02 02 01 ...    413              DC.B    2, 1, 2, 2, 2, 1, 1, 1
+00001144= 02 02 01 01 01 01 ...    414              DC.B    2, 2, 1, 1, 1, 1, 1, 2
+0000114C= 01 01 01 02 01 02 ...    415              DC.B    1, 1, 1, 2, 1, 2, 1, 2
+00001154= 02 02 02 02 01 02 ...    416              DC.B    2, 2, 2, 2, 1, 2, 1, 2
+0000115C= 01 01 02 02 02 01 ...    417              DC.B    1, 1, 2, 2, 2, 1, 2, 1
+00001164= 02 02 02 01 01 02 ...    418              DC.B    2, 2, 2, 1, 1, 2, 1, 1
+0000116C= 01 02 01 01 01 02 ...    419              DC.B    1, 2, 1, 1, 1, 2, 1, 2
+00001174= 01 02 02 01 02 01 ...    420              DC.B    1, 2, 2, 1, 2, 1, 2, 2
+0000117C= 01 02 01 02 01 01 ...    421              DC.B    1, 2, 1, 2, 1, 1, 2, 1
+00001184= 01 02 01 01 01 01 ...    422              DC.B    1, 2, 1, 1, 1, 1, 1, 1
+0000118C= 02 01 01 02 01 01 ...    423              DC.B    2, 1, 1, 2, 1, 1, 1, 2
+00001194= 02 01 01 01 01 02 ...    424              DC.B    2, 1, 1, 1, 1, 2, 1, 1
+0000119C= 01 01 02 01 01 02 ...    425              DC.B    1, 1, 2, 1, 1, 2, 1, 2
+000011A4= 02 02 01 01 02 02 ...    426              DC.B    2, 2, 1, 1, 2, 2, 2, 2
+000011AC= 01 01 02 01 02 02 ...    427              DC.B    1, 1, 2, 1, 2, 2, 1, 2
+000011B4= 01 02 01 02 02 02 ...    428              DC.B    1, 2, 1, 2, 2, 2, 2, 1
+000011BC= 01 01 02 02 01 01 ...    429              DC.B    1, 1, 2, 2, 1, 1, 2, 1
+000011C4= 02 02 01 02 01 02 ...    430              DC.B    2, 2, 1, 2, 1, 2, 1, 1
+000011CC= 02 01 02 01 01 02 ...    431              DC.B    2, 1, 2, 1, 1, 2, 1, 2
+000011D4= 01 01 02 02 02 01 ...    432              DC.B    1, 1, 2, 2, 2, 1, 1, 1
+000011DC= 01 01 02 02 01 02 ...    433              DC.B    1, 1, 2, 2, 1, 2, 1, 2
+000011E4= 01 02 01 01 01 02 ...    434              DC.B    1, 2, 1, 1, 1, 2, 1, 1
+000011EC= 02 01 01 02 01 02 ...    435              DC.B    2, 1, 1, 2, 1, 2, 2, 2
+000011F4= 02 01 01 01 02 02 ...    436              DC.B    2, 1, 1, 1, 2, 2, 1, 1
+000011FC= 02 02 02 01 02 02 ...    437              DC.B    2, 2, 2, 1, 2, 2, 1, 2
+00001204= 01 02 01 01 02 01 ...    438              DC.B    1, 2, 1, 1, 2, 1, 2, 2
+0000120C= 02 02 02 01 01 01 ...    439              DC.B    2, 2, 2, 1, 1, 1, 1, 2
+0000120C= 02 02 02 01 01 01 ...    440  -------------------- end include --------------------
+00001214                           441              INCLUDE "BUTTON.X68"            ; BUTTON MANAGEMENT
+00001214                           442  ; =============================================================================
+00001214                           443  ; TITLE    : BUTTON MANAGEMENT
+00001214                           444  ; AUTHOR   : ANTONI BURGUERA
+00001214                           445  ; HISTORY  : 05-JULY-2021 - CREATION
+00001214                           446  ; COMMENTS : * A BUTTON IS DEFINED BY A STATIC DATA BLOCK (SDB), WHICH DOES NOT
+00001214                           447  ;              CHANGE OVER TIME, AND A VARIABLE DATA BLOCK (VDB), THAT CAN
+00001214                           448  ;              CHANGE OVER TIME. CHANGES IN THE VDB ARE PRODUCED WHEN CALLING
+00001214                           449  ;              SUBROUTINE BTNUPD.
+00001214                           450  ;
+00001214                           451  ;            * THE BUTTON SDB (CAN BE IN ROM) HAS THE FOLLOWING FIELDS. THE
+00001214                           452  ;              NUMBER DENOTES THE OFFSET WITH RESPECT TO THE SDB START:
+00001214                           453  ;
+00001214                           454  ;                +0  - WORD - YTOP COORDINATE (PIXELS)
+00001214                           455  ;                +2  - WORD - XLEFT COORDINATE (PIXELS)
+00001214                           456  ;                +4  - WORD - HEIGHT (PIXELS)
+00001214                           457  ;                +6  - WORD - WIDTH (PIXELS)
+00001214                           458  ;                +8  - LONG - CALLBACK POINTER
+00001214                           459  ;                +12 - BYTE STRING - ZERO TERMINATED STRING. TEXT TO SHOW.
+00001214                           460  ;
+00001214                           461  ;            * THE BUTTON VDB (MUST BE IN RAM) IS:
+00001214                           462  ;
+00001214                           463  ;                +0 - LONG - POINTER TO THE STATIC DATABLOCK
+00001214                           464  ;                +4 - BYTE - STATUS WITH FORMAT XXXXXCPI WHERE:
+00001214                           465  ;                            - I (BIT 0) - 1=MOUSE INSIDE, 0=MOUSE OUTSIDE
+00001214                           466  ;                            - P (BIT 1) - 1=MOUSE PRESSED INSIDE
+00001214                           467  ;                                          0=MOUSE NOT PRESSED INSIDE
+00001214                           468  ;                            - C (BIT 2) - 1=MOUSE CLICKED INSIDE
+00001214                           469  ;                                          0=MOUSE NOT CLICKED INSIDE
+00001214                           470  ;                            NOTE THAT IF I=0 THEN P=C=0, IF I=1 AND P=0
+00001214                           471  ;                            THEN C=0.
+00001214                           472  ; =============================================================================
+00001214                           473  
+00001214                           474  ; -----------------------------------------------------------------------------
+00001214                           475  BTNINIT
+00001214                           476  ; INITIALIZES THE BUTTON BY:
+00001214                           477  ;  * COPYING THE SDB POINTER INTO THE VDB.
+00001214                           478  ;  * CLEARING THE STATUS BYTE.
+00001214                           479  ; INPUT    : A0 - POINTER TO THE VARIABLE DATABLOCK
+00001214                           480  ;            A1 - POINTER TO THE STATIC DATABLOCK
+00001214                           481  ; OUTPUT   : NONE
+00001214                           482  ; MODIFIES : NONE
+00001214                           483  ; -----------------------------------------------------------------------------
+00001214                           484  
+00001214                           485  ; TODO : PLACE YOUR CODE HERE
+00001214  2089                     486              MOVE.L  A1, (A0) ;FICAM EL SDB A VDB
+00001216  4228 0004                487              CLR.B   4(A0)    ;CLEAR STATUS BYTE
+0000121A  4E75                     488              RTS
+0000121C                           489              
+0000121C                           490  ; -----------------------------------------------------------------------------
+0000121C                           491  BTNUPD
+0000121C                           492  ; UPDATES THE BUTTON VDB AND EXECUTES THE CALLBACK IF REQUIRED
+0000121C                           493  ; INPUT    : A0 - POINTER TO THE VARIABLE DATABLOCK
+0000121C                           494  ; OUTPUT   : NONE
+0000121C                           495  ; MODIFIES : NONE
+0000121C                           496  ; -----------------------------------------------------------------------------
+0000121C                           497  
+0000121C                           498  ; TODO : PLACE YOUR CODE HERE
+0000121C  48E7 E040                499              MOVEM.L D0-D2/A1, -(A7)
+00001220  2250                     500              MOVE.L  (A0), A1                ;OBTENIM EL SDB DEL VDB
+00001222  3029 0002                501              MOVE.W  2(A1), D0               ;OBTENIM XLEFT DE SDB
+00001226  3229 0006                502              MOVE.W  6(A1), D1               ;OBTENIM EL WIDTH DE SDB
+0000122A  B079 00002280            503              CMP.W   (MOUX), D0              ;COMPROVAM EL COMENÇAMENT DEL BOTO X
+00001230  6E00 0072                504              BGT     .NO                     ;NO DINS BOTO
+00001234  D240                     505              ADD.W   D0, D1                  ;AMPLADA DEL BOTO
+00001236  B279 00002280            506              CMP.W   (MOUX), D1              ;COMPROVAM EL FINAL DEL BOTO X
+0000123C  6D00 0066                507              BLT     .NO                     ;NO DINS BOTO
+00001240  3011                     508              MOVE.W  (A1), D0                ;UPPERY
+00001242  3229 0004                509              MOVE.W  4(A1), D1               ;HEIGHT
+00001246  B079 0000227E            510              CMP.W   (MOUY), D0              ;COMPROVAM EL COMENÇAMENT DEL BOTO Y
+0000124C  6E00 0056                511              BGT     .NO                     ;NO DINS BOTO
+00001250  D240                     512              ADD.W  D0, D1                   ;ALTURA BOTO
+00001252  B279 0000227E            513              CMP.W   (MOUY), D1              ;COMPROVAM EL FINAL DEL BOTO Y
+00001258  6D00 004A                514              BLT     .NO                     ;NO DINS BOTO
+0000125C  1028 0004                515              MOVE.B  4(A0), D0               ;OBTENIM L'STATUS BYTE
+00001260                           516              
+00001260                           517              ;COMPROVAM EL VALOR DEL BIT I I EL MODIFICAM
+00001260  0000 0001                518              ORI.B   #$01, D0                ;POSAP I A 1  
+00001264                           519           
+00001264                           520              ;COMPROVAM EL VALOR DEL BIT P I EL MODIFICAM
+00001264  1239 00002282            521              MOVE.B  (MOUVAL), D1            ;OBTENIM EL VALOR ACTUAL DEL MOUSE
+0000126A  0801 0000                522              BTST.L  #0, D1                  ;MIRAM SI S'HA PITJAT EL BOTO ESQUERRA
+0000126E  6700 000A                523              BEQ     .CLRP                   ;NO PTJAT
+00001272  0040 0002                524              ORI.W   #$02, D0                ;POSAM P A 1
+00001276  6000 0006                525              BRA     .CHECKC    
+0000127A  0200 000D                526  .CLRP       ANDI.B  #$0D, D0                ;CLEAR DE P
+0000127E                           527  .CHECKC
+0000127E                           528  
+0000127E                           529              ;COMPROVAM EL VALOR DEL BIT C I EL MODIFICAM
+0000127E  1239 00002283            530              MOVE.B  (MOUEDGE), D1
+00001284  0801 0000                531              BTST.L  #0, D1                  ;CLICAT?
+00001288  6700 0012                532              BEQ     .CLEARC
+0000128C  0040 0004                533              ORI.W   #$04, D0                ;POSAM C A 1
+00001290  2429 0008                534              MOVE.L  8(A1), D2               ;OBTENIM EL CALLBACK
+00001294  2242                     535              MOVE.L  D2, A1
+00001296  4E91                     536              JSR     (A1)                    ;JSR CAP A LA DIRECCIO DEL CALLBACK
+00001298  6000 0006                537              BRA     .SETC
+0000129C  0200 000B                538  .CLEARC     ANDI.B  #$0B, D0                ;CLEAR DE C    
+000012A0                           539  .SETC
+000012A0  6000 000A                540              BRA     .END                  
+000012A4  1028 0004                541  .NO         MOVE.B  4(A0), D0               ;OBTENIM L'STATUS BYTE
+000012A8  0200 0000                542              ANDI.B  #$00, D0                ;CLEAR DE C P I 
+000012AC  1140 0004                543  .END        MOVE.B  D0, 4(A0)
+000012B0  4CDF 0207                544              MOVEM.L (A7)+, D0-D2/A1
+000012B4  4E75                     545              RTS
+000012B6                           546  
+000012B6                           547  ; -----------------------------------------------------------------------------
+000012B6                           548  BTNPLOT
+000012B6                           549  ; PLOTS THE BUTTON. A RECTANGLE IS DRAWN WITH THICKNESS BTNPENWD. THE CONTOUR
+000012B6                           550  ; COLOR IS BTNPENCL. THE FILL COLOR IS BLACK IF THE MOUSE IS NOT INSIDE,
+000012B6                           551  ; BTNSELCL IF THE MOUSE IS INSIDE BUT THE MOUSE BUTTON IS NOT PRESSED AND
+000012B6                           552  ; BTNPRSCL IF THE MOUSE BUTTON IS PRESSED INSIDE.
+000012B6                           553  ; INPUT    : A0 - POINTER TO THE VARIABLE DATABLOCK
+000012B6                           554  ; OUTPUT   : NONE
+000012B6                           555  ; MODIFIES : NONE
+000012B6                           556  ; -----------------------------------------------------------------------------
+000012B6                           557  
+000012B6                           558  ; TODO : PLACE YOUR CODE HERE
+000012B6  48E7 FC40                559              MOVEM.L D0-D5/A1, -(A7)
+000012BA                           560              
+000012BA  303C 005D                561              MOVE.W #93,D0
+000012BE  123C 0004                562              MOVE.B #BTNPENWD,D1
+000012C2  4E4F                     563              TRAP #15            ;ESTABLIB LA GRUIXADA DEL CONTORN A BTNPENDWD
+000012C4                           564  
+000012C4  303C 0050                565              MOVE.W #80,D0
+000012C8  223C 00005500            566              MOVE.L #BTNPENCL,D1
+000012CE  4E4F                     567              TRAP #15            ;ESTABLIB EL COLOR DE DIBUIX A BTNPENCL
+000012D0                           568              
+000012D0  5240                     569              ADDQ.W #1,D0        ;SUMAM 80+1=81
+000012D2  1A28 0004                570              MOVE.B 4(A0),D5
+000012D6  0805 0001                571              BTST.L #1,D5        ;MIRAR BIT P
+000012DA  6700 0016                572              BEQ .NOTPRESSED
+000012DE                           573              ;CAS PITJAT
+000012DE  0805 0000                574              BTST.L #0,D5
+000012E2  6700 0022                575              BEQ .NOTINSIDE
+000012E6                           576              ;PITJAT, DEDINS
+000012E6  223C 00006600            577              MOVE.L #BTNPRSCL,D1
+000012EC  4EF9 00001308            578              JMP .SYSTEM_CALL
+000012F2                           579  .NOTPRESSED
+000012F2  0805 0000                580              BTST.L #0,D5
+000012F6  6700 000E                581              BEQ .NOTINSIDE
+000012FA  223C 0000AA00            582              MOVE.L #BTNSELCL,D1
+00001300  4EF9 00001308            583              JMP .SYSTEM_CALL
+00001306                           584              
+00001306                           585  
+00001306                           586  .NOTINSIDE
+00001306  7200                     587              MOVE.L #CLRBLACK,D1
+00001308                           588              
+00001308                           589  .SYSTEM_CALL
+00001308  4E4F                     590              TRAP #15
+0000130A                           591              
+0000130A                           592  .DRAW_RECT  
+0000130A  103C 0057                593              MOVE.B #87,D0
+0000130E  2250                     594              MOVE.L (A0),A1      ;SDB
+00001310  3229 0002                595              MOVE.W 2(A1),D1     ;XLEFT TO D1
+00001314  3411                     596              MOVE.W (A1),D2      ;YTOP  TO D2
+00001316  3629 0006                597              MOVE.W 6(A1),D3     ;WIDTH TO D3
+0000131A  D641                     598              ADD.W  D1,D3        ;XLEFT+WIDTH TO D3
+0000131C  3829 0004                599              MOVE.W 4(A1),D4     ;YTOP  TO D4
+00001320  D842                     600              ADD.W  D2,D4        ;YTOP-HEIGHT TO D4
+00001322  4E4F                     601              TRAP #15            
+00001324                           602              
+00001324  D3FC 0000000C            603              ADDA.L #12,A1              
+0000132A  4EB8 10E4                604              JSR     UTLSTRLN                
+0000132E                           605              
+0000132E  9641                     606              SUB.W   D1, D3                  ;RESTABLIM EL VALOR HEIGTH      
+00001330  9842                     607              SUB.W   D2, D4                  ;RESTABLIM EL VALOR WIDTH
+00001332                           608              
+00001332                           609              ;COORDENADAX=LEFTX+(WIDTH-(STRLEN*CHRWDTH)/2
+00001332  C0FC 0008                610              MULU.W  #CHRWIDTH, D0           ;LONGITUD PARAULA*PIXELES D'UNA LLETRA
+00001336  9640                     611              SUB.W   D0, D3                   
+00001338  87FC 0002                612              DIVS    #2, D3                  
+0000133C  D243                     613              ADD.W   D3, D1                  
+0000133E                           614              
+0000133E                           615              ;COORDENADAY=UPPERY+(HEIGHT-(STRLEN*CHRHEIGHT)/2
+0000133E  303C 0010                616              MOVE.W  #CHRHEIGH, D0
+00001342  9840                     617              SUB.W   D0, D4                  ;D4(YHEIGHT)-D0(STRLEN*CHRHEIGHT)
+00001344  89FC 0002                618              DIVS    #2, D4
+00001348  D444                     619              ADD.W   D4, D2                  
+0000134A                           620              
+0000134A  103C 005F                621              MOVE.B  #95, D0                 
+0000134E  4E4F                     622              TRAP    #15               
+00001350  4CDF 023F                623              MOVEM.L (A7)+, D0-D5/A1           
+00001354  4E75                     624              RTS 
+00001354  4E75                     625  -------------------- end include --------------------
+00001356                           626              INCLUDE "BTNLIST.X68"           ; BUTTON LIST MANAGEMENT
+00001356                           627  ; =============================================================================
+00001356                           628  ; TITLE    : BUTTON LIST MANAGEMENT
+00001356                           629  ; AUTHOR   : ANTONI BURGUERA
+00001356                           630  ; HISTORY  : 05-JULY-2021 - CREATION
+00001356                           631  ; COMMENTS : * ALLOWS ADDING, UPDATING AND PLOTTING A LIST OF BUTTONS. ALLOWS
+00001356                           632  ;              REMOVING THEM ALL, BUT NOT INDIVIDUALLY.
+00001356                           633  ;
+00001356                           634  ;            * THE LIST OF BUTTONS IS STORED AS A LIST OF BUTTON'S VDB. THIS
+00001356                           635  ;              LIST IS STORED AT BTLDATA.
+00001356                           636  ;
+00001356                           637  ;            * THE LIST OF VBD IS BUILT ASSUMING A MAXIMUM OF BTLMXVDB BUTTONS
+00001356                           638  ;              AND A SIZE OF BTNSZVDB BYTES FOR EACH VDB.
+00001356                           639  ; =============================================================================
+00001356                           640  
+00001356                           641  ; -----------------------------------------------------------------------------
+00001356                           642  BTLINIT
+00001356                           643  ; INITIALIZES BUTTON LIST BY SETTING ALL THE POINTERS TO STATIC DATA BLOCKS
+00001356                           644  ; TO $FFFFFFFF.
+00001356                           645  ; INPUT    : NONE
+00001356                           646  ; OUTPUT   : NONE
+00001356                           647  ; MODIFIES : NONE
+00001356                           648  ; -----------------------------------------------------------------------------
+00001356  48E7 2080                649              MOVEM.L D2/A0,-(A7)             ;GUARDAM REGISTRE CONTADOR I PUNTER
+0000135A                           650              
+0000135A  41F9 00002286            651              LEA     BTLDATA,A0              ;APUNTAM A LA LLISTA DE BUTONS
+00001360  343C 0009                652              MOVE.W  #BTLMXVDB-1,D2          ;GUARDAM NOMBRE DE ITERACIONS
+00001364  20BC FFFFFFFF            653  .LOOP       MOVE.L  #$FFFFFFFF,(A0)         ;ASSIGNAM VALOR BUIT AL BOTÓ
+0000136A  5C88                     654              ADD.L   #BTNSZVDB,A0            ;AVANÇAM A LA SEGÜENT POSICIÓ
+0000136C  51CA FFF6                655              DBRA.W  D2,.LOOP                
+00001370                           656              
+00001370  4CDF 0104                657              MOVEM.L (A7)+,D2/A0             ;RESTAURAM REGISTRES
+00001374  4E75                     658              RTS
+00001376                           659  
+00001376                           660  ; -----------------------------------------------------------------------------
+00001376  =00001356                661  BTLCLEAR    EQU     BTLINIT
+00001376                           662  ; CLEARS THE BUTTON LIST. SAME AS BTLINIT.
+00001376                           663  ; INPUT    : NONE
+00001376                           664  ; OUTPUT   : NONE
+00001376                           665  ; MODIFIES : NONE
+00001376                           666  ; -----------------------------------------------------------------------------
+00001376                           667  
+00001376                           668  ; -----------------------------------------------------------------------------
+00001376                           669  BTLADD
+00001376                           670  ; ADDS A NEW BUTTON INTO THE BUTTON LIST AND INITS IT.
+00001376                           671  ; INPUT    : A1 - POINTER TO THE BUTTON SDB
+00001376                           672  ; OUTPUT   : NONE
+00001376                           673  ; MODIFIES : NONE
+00001376                           674  ; -----------------------------------------------------------------------------
+00001376                           675  
+00001376                           676              
+00001376                           677  ; ----------------------CERCA DEL PRIMER ELEMENT BUIT--------------------------
+00001376  48E7 2080                678              MOVEM.L A0/D2,-(A7)             ;GUARDAM REGISTRES
+0000137A                           679  
+0000137A                           680  
+0000137A  41F9 00002286            681              LEA     BTLDATA,A0              ;APUNTAM A LA LLISTA DE BUTONS
+00001380  343C 0009                682              MOVE.W  #BTLMXVDB-1,D2          ;ASSIGNAM NOMBRE DE ITERACIONS A D2
+00001384  0C90 FFFFFFFF            683  .LOOP       CMP.L   #$FFFFFFFF,(A0)         ;MIRAM SI EL BOTÓ ESTÀ 'BUIT'
+0000138A  6700 000E                684              BEQ     .TROBAT                 ;SI TROBAT, INIT DEL BOTO
+0000138E  5C88                     685              ADD.L   #BTNSZVDB,A0            ;AVANÇAM POSICIÓ
+00001390  51CA FFF2                686              DBRA.W  D2,.LOOP
+00001394                           687  
+00001394                           688  ; ----------------------BOTÓ AFEGIT CORRECTAMENT-------------------------------
+00001394                           689  
+00001394  4CDF 0104                690  .FINAL      MOVEM.L (A7)+,A0/D2             ;RESTAURAM REGISTRES
+00001398  4E75                     691              RTS
+0000139A                           692  
+0000139A                           693  ; ----------------------INIT DEL BOTÓ A AFEGIR---------------------------------
+0000139A                           694  
+0000139A  4EB8 1214                695  .TROBAT     JSR     BTNINIT
+0000139E  60F4                     696              BRA     .FINAL
+000013A0                           697              
+000013A0                           698  
+000013A0                           699  ; -----------------------------------------------------------------------------
+000013A0                           700  BTLUPD
+000013A0                           701  ; CALLS BTNUPD FOR ALL THE BUTTONS IN THE BUTTON LIST.
+000013A0                           702  ; INPUT    : NONE
+000013A0                           703  ; OUTPUT   : NONE
+000013A0                           704  ; MODIFIES : NONE
+000013A0                           705  ; -----------------------------------------------------------------------------
+000013A0                           706  
+000013A0                           707  
+000013A0                           708  
+000013A0                           709  ; ----------------------BUCLE RECORREGUT SOBRE BOTONS--------------------------
+000013A0  48E7 2080                710              MOVEM.L A0/D2,-(A7)             ;GUARDAM REGISTRES
+000013A4                           711  
+000013A4  41F9 00002286            712              LEA     BTLDATA,A0              ;APUNTAM A LA LLISTA DE BOTONS
+000013AA  343C 0009                713              MOVE.W  #BTLMXVDB-1,D2          ;ASSIGNAM NOMBRE ITERACIONS A D2
+000013AE  0C90 FFFFFFFF            714  .LOOP       CMP.L   #$FFFFFFFF,(A0)         ;MIRAM SI ESTA BUIT EL BOTÓ
+000013B4  6700 000C                715              BEQ     .FINAL                 ;SI=HEM RECORREGUT TOTA LA LLISTA
+000013B8                           716  
+000013B8                           717              
+000013B8  4EB8 121C                718              JSR     BTNUPD                  ;ACTUALITZAM CADA BOTÓ
+000013BC                           719  
+000013BC                           720  
+000013BC  5C88                     721              ADD.L   #BTNSZVDB,A0            ;AVANÇAM POSICIÓ DINS EL BUCLE
+000013BE  51CA FFEE                722              DBRA.W  D2,.LOOP                
+000013C2                           723  ; ----------------------FINAL BUCLE RECORREGUT BOTONS--------------------------
+000013C2  4CDF 0104                724  .FINAL     MOVEM.L (A7)+,A0/D2             ;RESTAURAM REGISTRES
+000013C6  4E75                     725              RTS
+000013C8                           726  
+000013C8                           727  
+000013C8                           728  ; -----------------------------------------------------------------------------
+000013C8                           729  BTLPLOT
+000013C8                           730  ; CALLS BTNPLOT FOR ALL THE BUTTONS IN THE BUTTON LIST.
+000013C8                           731  ; INPUT    : NONE
+000013C8                           732  ; OUTPUT   : NONE
+000013C8                           733  ; MODIFIES : NONE
+000013C8                           734  ; -----------------------------------------------------------------------------
+000013C8                           735  
+000013C8                           736  ; TODO : PLACE YOUR CODE HERE
+000013C8  48E7 2080                737              MOVEM.L A0/D2,-(A7)             ;GUARDAM REGISTRES
+000013CC                           738  
+000013CC                           739  ; ----------------------BUCLE RECORREGUT SOBRE BOTONS--------------------------
+000013CC  41F9 00002286            740              LEA     BTLDATA,A0              ;APUNTAM A LA LLISTA
+000013D2  343C 0009                741              MOVE.W  #BTLMXVDB-1,D2          ;ASSIGNAM ITERACIONS A D2
+000013D6  0C90 FFFFFFFF            742  .LOOP       CMP.L   #$FFFFFFFF,(A0)         ;MIRAM SI FINAL DE LLISTA
+000013DC  6700 000C                743              BEQ     .FINAL
+000013E0                           744  
+000013E0  4EB8 12B6                745              JSR     BTNPLOT                 ;DIBUIXAM BOTÓ
+000013E4                           746  
+000013E4  5C88                     747              ADD.L   #BTNSZVDB,A0            ;AVANÇAM POSICIÓ
+000013E6  51CA FFEE                748              DBRA.W  D2,.LOOP
+000013EA                           749  ; ----------------------FINAL BUCLE RECORREGUT BOTONS--------------------------
+000013EA                           750  
+000013EA  4CDF 0104                751  .FINAL      MOVEM.L (A7)+,A0/D2             ;RESTAURAM REGISTRES
+000013EE  4E75                     752              RTS
+000013F0                           753  
+000013F0                           754  -------------------- end include --------------------
+000013F0                           755              INCLUDE "GRID_DEFINITIU.X68"    ; GRID MANAGEMENT
+000013F0                           756  ; =============================================================================
+000013F0                           757  ; TITLE    : GRID MANAGEMENT
+000013F0                           758  ; AUTHOR   : ANTONI BURGUERA
+000013F0                           759  ; HISTORY  : 05-JULY-2021 - CREATION
+000013F0                           760  ; COMMENTS : * THERE ARE TWO MATRICES (GRDMATR0 AND GRDMATR1) AND TWO POINTERS
+000013F0                           761  ;              TO THESE MATRICES (GRDSRC AND GRDDST).
+000013F0                           762  ;
+000013F0                           763  ;            * THE MATRIX TO BE PLOTTED IS ALWAYS THE ONE POINTED BY GRDDST.
+000013F0                           764  ;
+000013F0                           765  ;            * THE MATRIX TO BE UPDATED BY THE MOUSE (GRDMUPD) IS ALWAYS THE
+000013F0                           766  ;              ONE POINTED BY GRDDST.
+000013F0                           767  ;
+000013F0                           768  ;            * THE RULES-UPDATE (GRDRUPD) SWITCHES THE POINTERS AND THEN READS
+000013F0                           769  ;              THE NEW SOURCE MATRIX (GRDSRC) TO DETERMINE THE NUMBER OF
+000013F0                           770  ;              NEIGHBORS. THE RESULTING CELL VALUE IS WRITTEN TO THE DESTINA-
+000013F0                           771  ;              TION MATRIX, POINTED BY GRDDST.
+000013F0                           772  ; =============================================================================
+000013F0                           773  
+000013F0                           774  ; -----------------------------------------------------------------------------
+000013F0                           775  GRDINIT
+000013F0                           776  ; INITIALIZE THE GRID AS FOLLOWS:
+000013F0                           777  ; * POINTS THE SOURCE GRID POINTER TO GRDMATR0.
+000013F0                           778  ; * POINTS THE DESTINATION GRID POINTER TO GRDMATR1.
+000013F0                           779  ; * RESETS THE COUNTERS (GRDNPLR1, GRDNPLR2, GRDNGEN).
+000013F0                           780  ; * FILLS THE TWO MATRICES (GRDMATR0 AND GRDMATR1) WITH ZEROS.
+000013F0                           781  ; INPUT    : NONE
+000013F0                           782  ; OUTPUT   : NONE
+000013F0                           783  ; MODIFIES : NONE
+000013F0                           784  ; -----------------------------------------------------------------------------
+000013F0  48E7 8080                785              MOVEM.L A0/D0,-(A7)
+000013F4  23FC 000022CA 000022C2   786              MOVE.L  #GRDMATR0,(GRDSRC)
+000013FE  23FC 00002ACA 000022C6   787              MOVE.L  #GRDMATR1,(GRDDST)
+00001408  4279 000032CA            788              CLR.W   (GRDNPLR1)
+0000140E  4279 000032CC            789              CLR.W   (GRDNPLR2)
+00001414  4279 000032CE            790              CLR.W   (GRDNGEN)
+0000141A  41F9 000022CA            791              LEA     GRDMATR0,A0
+00001420  303C 0FFF                792              MOVE.W  #GRDWIDTH*GRDHEIGH*2-1,D0
+00001424  4218                     793  .LOOP       CLR.B   (A0)+
+00001426  51C8 FFFC                794              DBRA.W  D0,.LOOP
+0000142A  4CDF 0101                795              MOVEM.L (A7)+,A0/D0
+0000142E  4E75                     796              RTS
+00001430                           797  
+00001430                           798  ; -----------------------------------------------------------------------------
+00001430                           799  GRDMUPD
+00001430                           800  ; GRID UPDATE USING MOUSE. THE INTERFACE IS AS FOLLOWS:
+00001430                           801  ; * IF MOUSE IS NOT PRESSED OR IS OUTSIDE THE PLOTTED GRID, DOES NOTHING.
+00001430                           802  ; * IF LEFT MOUSE BUTTON IS PRESSED INSIDE THE GRID:
+00001430                           803  ;   - A PLAYER 1 (VALUE=1) CELL IS CREATED AT THE MOUSE POSITION IF THE MOUSE
+00001430                           804  ;     IS ON THE LEFT HALF OF THE GRID.
+00001430                           805  ;   - A PLAYER 2 (VALUE=2) CELL IS CREATED AT THE MOUSE POSITION IF THE MOUSE
+00001430                           806  ;     IS ON THE RIGHT HALF OF THE GRID.
+00001430                           807  ; * IF RIGHT MOUSE BUTTON IS PRESSED INSIDE THE GRID, THE CELL WHERE THE MOUSE
+00001430                           808  ;   IS IS CLEARED (VALUE=0).
+00001430                           809  ; INPUT    : NONE
+00001430                           810  ; OUTPUT   : NONE
+00001430                           811  ; MODIFIES : NONE
+00001430                           812  ; -----------------------------------------------------------------------------
+00001430                           813  
+00001430                           814  ; TODO : PLACE YOUR CODE HERE
+00001430  48E7 F080                815              MOVEM.L D0-D3/A0, -(A7)
+00001434  4281                     816              CLR.L   D1                      ; WILL BE USED FOR DIVIDE OP
+00001436  4282                     817              CLR.L   D2
+00001438  123C 0003                818              MOVE.B  #MOUMSKLF+MOUMSKRT, D1
+0000143C  1639 00002282            819              MOVE.B  (MOUVAL), D3
+00001442  C601                     820              AND.B   D1, D3
+00001444  4A03                     821              TST.B   D3
+00001446  6700 0074                822              BEQ     .END
+0000144A  0C79 006E 0000227E       823              CMP     #GRDVEMRG, (MOUY)
+00001452  6D00 0068                824              BLT     .END
+00001456  303C 006E                825              MOVE.W  #GRDVEMRG, D0
+0000145A  C0FC 0040                826              MULU    #GRDWIDTH, D0
+0000145E  B079 0000227E            827              CMP     (MOUY), D0
+00001464  6F00 0056                828              BLE     .END
+00001468  2079 000022C6            829              MOVE.L  (GRDDST), A0            ; A0: POINTER TO THE DATA TO WRITE
+0000146E  303C 0040                830              MOVE.W  #GRDWIDTH, D0           ; PUT NR OF COLUMNS IN D0
+00001472  3439 0000227E            831              MOVE.W  (MOUY), D2              ; GET MOUSE POSITION
+00001478  0442 009E                832              SUB.W   #GRDYOFF, D2            ; INITIAL Y
+0000147C  85FC 000C                833              DIVS.W  #GRDSZCEL, D2           ; GET Y OFFSET                     
+00001480  C0C2                     834              MULU.W  D2, D0
+00001482  3239 00002280            835              MOVE.W  (MOUX), D1              
+00001488  0441 0010                836              SUB.W   #GRDXOFF, D1            ; INITIAL X
+0000148C  83FC 000C                837              DIVS.W  #GRDSZCEL, D1           ; GET X OFFSET
+00001490  D041                     838              ADD.W   D1, D0
+00001492  0803 0001                839              BTST.L  #MOUMSKLF, D3           ; IS RIGHT CLICK?
+00001496  6600 001E                840              BNE     .DELETE
+0000149A  B27C 0020                841              CMP.W   #GRDWIDTH/2, D1         ; CHECK IF PLR1 OR PLR2
+0000149E  6C00 000C                842              BGE     .PLR2
+000014A2  11BC 0001 0000           843              MOVE.B  #1,(A0, D0)
+000014A8  6000 0012                844              BRA     .END
+000014AC  11BC 0002 0000           845  .PLR2       MOVE.B  #2, (A0, D0)
+000014B2  6000 0008                846              BRA     .END
+000014B6  11BC 0000 0000           847  .DELETE     MOVE.B  #0, (A0, D0)
+000014BC  4CDF 010F                848  .END        MOVEM.L (A7)+, D0-D3/A0
+000014C0  4E75                     849              RTS
+000014C2                           850  
+000014C2                           851  ; -----------------------------------------------------------------------------
+000014C2                           852  GRDRUPD
+000014C2                           853  ; UPDATES THE GRID ACCORDING TO 2-PLAYER GAME OF LIFE RULES AS FOLLOWS:
+000014C2                           854  ; * ADDS 1 TO THE NUMBER OF GENERATIONS (GRDNGEN)
+000014C2                           855  ; * SWITCHES THE MATRIX POINTERS (GRDDST AND GRDSRC).
+000014C2                           856  ; * CHECKS THE NEIGHBORS USING THE NEW SOURCE MATRIX (POINTER BY GRDDRC)
+000014C2                           857  ; * THE RESULTS OF APPLYING THE RULES ARE WRITTEN INTO THE NEW DESTINATION
+000014C2                           858  ;   MATRIX (POINTED BY GRDDST).
+000014C2                           859  ; * THE RULES ARE THE FOLLOWING, WHERE P1 AND P2 ARE 1 AND 2 RESPECTIVELY,
+000014C2                           860  ;   DEAD CELLS ARE REPRESENTED BY 0 AND NP1 AND NP2 DENOTE THE NUMBER OF
+000014C2                           861  ;   PLAYER 1 AND PLAYER 2 NEIGHBORS RESPECTIVELY:
+000014C2                           862  ;   + SURVIVAL RULES
+000014C2                           863  ;     - IF CELL IS P1 AND NP1-NP2 IS 2 OR 3 -> NEW VALUE IS P1
+000014C2                           864  ;     - IF CELL IS P1 AND NP1-NP2 IS 1 AND NP1>=2 -> NEW VALUE IS P1
+000014C2                           865  ;     - OTHERWISE -> NEW VALUE IS 0
+000014C2                           866  ;     - IF CELL IS P2 AND NP2-NP1 IS 2 OR 3 -> NEW VALUE IS P2
+000014C2                           867  ;     - IF CELL IS P2 AND NP2-NP1 IS 1 AND NP2>=2 -> NEW VALUE IS P2
+000014C2                           868  ;     - OTHERWISE -> NEW VALUE IS 0
+000014C2                           869  ;   + BIRTH RULES
+000014C2                           870  ;     - THE CELL HAS EXACTLY THREE P1 NEIGHBOURS AND THE NUMBER
+000014C2                           871  ;       OF P2 NEIGHBOURS IS DIFFERENT FROM THREE. IN THIS CASE A
+000014C2                           872  ;       P1 TOKEN IS BORN IN THE CELL.
+000014C2                           873  ;     - THE CELL HAS EXACTLY THREE P2 NEIGHBOURS AND THE NUMBER
+000014C2                           874  ;       OF P1 NEIGHBOURS IS DIFFERENT FROM THREE. IN THIS CASE A
+000014C2                           875  ;       P2 TOKEN IS BORN IN THE CELL.
+000014C2                           876  ;     - THE CELL HAS EXACTLY THREE WHITE AND THREE BLACK NEIGHBOURS.
+000014C2                           877  ;       IN THIS CASE AN UNBIASED COIN DETERMINES WHETHER A WHITE OR
+000014C2                           878  ;       BLACK TOKEN IS BORN IN THE CELL.
+000014C2                           879  ; INPUT    : NONE
+000014C2                           880  ; OUTPUT   : NONE
+000014C2                           881  ; MODIFIES : NONE
+000014C2                           882  ; -----------------------------------------------------------------------------
+000014C2                           883  
+000014C2                           884  ; TODO : PLACE YOUR CODE HERE
+000014C2  48E7 F9F8                885              MOVEM.L D0-D4/D7/A0-A4, -(A7)
+000014C6  4284                     886              CLR.L   D4
+000014C8  4240                     887              CLR.W   D0
+000014CA  3039 000032CE            888              MOVE.W  (GRDNGEN), D0           ; ADD 1 TO GENERATION NR
+000014D0  5200                     889              ADDQ.B  #1, D0
+000014D2  33C0 000032CE            890              MOVE.W  D0, (GRDNGEN)
+000014D8                           891              ;
+000014D8  2079 000022C2            892              MOVE.L  (GRDSRC), A0
+000014DE  2279 000022C6            893              MOVE.L  (GRDDST), A1
+000014E4  23C8 000022C6            894              MOVE.L  A0, (GRDDST)
+000014EA  23C9 000022C2            895              MOVE.L  A1, (GRDSRC)
+000014F0                           896              ;
+000014F0                           897              ; WE USE A2 EXCLUSIVELY AS CURRENT CELL ITERATOR
+000014F0  2449                     898              MOVE.L  A1, A2                  ; SRC MATRIX WHERE TO READ
+000014F2  2049                     899              MOVE.L  A1, A0                  ; A0 WITH AUXILIAR POINTER TO GRDSRC
+000014F4                           900              ; WE USE A3 EXCLUSIVELY AS CELL EDITOR
+000014F4  2679 000022C6            901              MOVE.L  (GRDDST), A3            ; DST MATRIX WHERE TO WRITE
+000014FA  4243                     902              CLR.W   D3                      ; X INITIAL
+000014FC  4280                     903              CLR.L   D0                      ; NP1 COUNTER
+000014FE  4281                     904              CLR.L   D1                      ; NP2 COUNTER
+00001500                           905              ;UP LEFT
+00001500                           906              ;FIRST CELL DIFFERENT
+00001500  0C29 0002 07FF           907              CMP.B   #2, (GRDWIDTH*GRDHEIGH-1, A1) ; LAST CELL OF MATRIX
+00001506  6600 0008                908              BNE     .PLR1ULF                ; CHECK PLR1 UL
+0000150A  5201                     909              ADDQ.B  #1, D1   
+0000150C  6000 0006                910              BRA     .FIRSTUP
+00001510  D029 07FF                911  .PLR1ULF    ADD.B   (GRDWIDTH*GRDHEIGH-1, A1), D0 ; WHATEVER VALOR, WE ADD TO NP1
+00001514                           912              ; CHECK UPPER NEIGHBOUR
+00001514  2F09                     913  .FIRSTUP    MOVE.L  A1, -(A7)
+00001516  D3FC 000007C0            914              ADDA.L  #GRDWIDTH*GRDHEIGH-GRDWIDTH, A1
+0000151C  0C31 0002 3000           915              CMP.B   #2, (A1, D3)
+00001522  6600 0008                916              BNE     .PLR1UF                 ;PLAYER1UPFIRST
+00001526  5201                     917              ADDQ.B  #1, D1
+00001528  6000 0006                918              BRA     .RST1
+0000152C  D031 3000                919  .PLR1UF     ADD.B   (A1, D3), D0
+00001530  225F                     920  .RST1       MOVE.L  (A7)+, A1
+00001532                           921              ; CHECK UPPER RIGHT NEIGHBOUR
+00001532  2F09                     922              MOVE.L  A1, -(A7)
+00001534  D3FC 000007C1            923              ADDA.L  #GRDWIDTH*GRDHEIGH-GRDWIDTH+1, A1
+0000153A  0C11 0002                924              CMP.B   #2, (A1)
+0000153E  6600 0008                925              BNE     .PLR1URF
+00001542  5201                     926              ADDQ.B  #1, D1
+00001544  6000 0004                927              BRA     .RST2
+00001548  D011                     928  .PLR1URF    ADD.B   (A1), D0
+0000154A  225F                     929  .RST2       MOVE.L  (A7)+, A1
+0000154C                           930              ; CHECK RIGHT NEIGHBOUR
+0000154C  0C29 0002 0001           931              CMP.B   #2, (1, A1)
+00001552  6600 0008                932              BNE     .PLR1RF
+00001556  5201                     933              ADDQ.B  #1, D1
+00001558  6000 0006                934              BRA     .FIRSTBR
+0000155C  D029 0001                935  .PLR1RF     ADD.B   (1, A1), D0
+00001560                           936  .FIRSTBR    ; CHECK BOTTOM RIGHT NEIGHBOUR
+00001560  0C29 0002 0041           937              CMP.B   #2, (GRDWIDTH+1,A1)   
+00001566  6600 0008                938              BNE     .PLR1BRF
+0000156A  5201                     939              ADDQ.B  #1, D1
+0000156C  6000 0006                940              BRA     .FIRSTB
+00001570  D029 0041                941  .PLR1BRF    ADD.B   (GRDWIDTH+1,A1), D0
+00001574                           942              ; CHECK BOTTOM NEIGHBOUR
+00001574  0C29 0002 0040           943  .FIRSTB     CMP.B   #2, (GRDWIDTH, A1)
+0000157A  6600 0008                944              BNE     .PLR1BF
+0000157E  5201                     945              ADDQ.B  #1, D1
+00001580  6000 0006                946              BRA     .FIRSTBL
+00001584  D029 0040                947  .PLR1BF     ADD.B   (GRDWIDTH,A1), D0
+00001588                           948  .FIRSTBL    ; CHECK BOTTOM LEFT NEIGHBOUR
+00001588  0C29 0002 007F           949              CMP.B   #2, (GRDWIDTH*2-1,A1)
+0000158E  6600 0008                950              BNE     .PLR1BLF
+00001592  5201                     951              ADDQ.B  #1, D1
+00001594  6000 0006                952              BRA     .FIRSTL
+00001598  D029 007F                953  .PLR1BLF    ADD.B   (GRDWIDTH*2-1,A1), D0
+0000159C  0C29 0002 003F           954  .FIRSTL     CMP.B   #2, (GRDWIDTH-1,A1)
+000015A2  6600 0008                955              BNE     .PLR1LF
+000015A6  5201                     956              ADDQ.B  #1, D1
+000015A8  6000 0006                957              BRA     .ENDFRST
+000015AC  D029 003F                958  .PLR1LF     ADD.B   (GRDWIDTH-1,A1), D0
+000015B0                           959              ;FIRST ROW DIFFERENT
+000015B0  6100 05C4                960  .ENDFRST    BSR     .RULES
+000015B4                           961  
+000015B4  4200                     962              CLR.B   D0
+000015B6  4201                     963              CLR.B   D1                      ; RESET NEIGHBOURS
+000015B8                           964              
+000015B8  5243                     965  .LOOPFR     ADDQ.W  #1, D3                  ; THIS WILL CONTROL LAST CELL
+000015BA                           966              ; WE LOOP THE FIRST ROW UNTIL END (MINUS FIRST CELL AND LAST CELL) 
+000015BA  B63C 003F                967              CMP.B   #GRDWIDTH-1, D3         
+000015BE  6C00 00CC                968              BGE     .ENDFC
+000015C2                           969              ; FIRST ROW HAS IS UPPER LEFT NEIGHBOURS 
+000015C2                           970              ; AT THE BOTTOM ROW (GRDWIDTH*GRDHEIGH-GRDWIDTH) AND WE
+000015C2                           971              ; DISPLACE CURRENT X TO POSITION - 1
+000015C2  2F09                     972              MOVE.L  A1, -(A7)
+000015C4  D3FC 000007BF            973              ADDA.L  #GRDWIDTH*GRDHEIGH-GRDWIDTH-1, A1
+000015CA  0C31 0002 3000           974              CMP.B   #2, (A1, D3) 
+000015D0  6600 0008                975              BNE     .PR1ULFR
+000015D4  5201                     976              ADDQ.B  #1, D1
+000015D6  6000 0006                977              BRA     .FRU                                
+000015DA  D031 3000                978  .PR1ULFR    ADD.B   (A1, D3), D0           
+000015DE  225F                     979  .FRU        MOVE.L  (A7)+, A1
+000015E0                           980              ; FIRST ROW UPPER NEIGHBOUR
+000015E0  2F09                     981              MOVE.L  A1, -(A7)
+000015E2  D3FC 000007C0            982              ADDA.L  #GRDWIDTH*GRDHEIGH-GRDWIDTH, A1
+000015E8  0C31 0002 3000           983              CMP.B   #2, (A1, D3)
+000015EE  6600 0008                984              BNE     .PR1UFR               
+000015F2  5201                     985              ADDQ.B  #1, D1
+000015F4  6000 0006                986              BRA     .FRUR                   
+000015F8  D031 3000                987  .PR1UFR     ADD.B   (A1, D3), D0
+000015FC  225F                     988  .FRUR       MOVE.L  (A7)+, A1
+000015FE                           989              ; FIRST ROW UPPER RIGHT NEIGHBOUR
+000015FE  2F09                     990              MOVE.L  A1, -(A7)
+00001600  D3FC 000007C1            991              ADDA.L  #GRDWIDTH*GRDHEIGH-GRDWIDTH+1, A1
+00001606  0C31 0002 3000           992              CMP.B   #2, (A1, D3)
+0000160C  6600 0008                993              BNE     .PR1URFR
+00001610  5201                     994              ADDQ.B  #1, D1
+00001612  6000 0006                995              BRA     .FRR
+00001616  D031 3000                996  .PR1URFR    ADD.B   (A1, D3), D0
+0000161A  225F                     997  .FRR        MOVE.L  (A7)+, A1
+0000161C                           998              ; FIRST ROW RIGHT NEIGHBOUR
+0000161C  0C31 0002 3001           999              CMP.B   #2, (1, A1, D3)
+00001622  6600 0008               1000              BNE     .PR1RFR
+00001626  5201                    1001              ADDQ.B  #1, D1
+00001628  6000 0006               1002              BRA     .FRBR
+0000162C  D031 3001               1003  .PR1RFR     ADD.B   (1, A1, D3), D0
+00001630  0C31 0002 3041          1004  .FRBR       CMP.B   #2, (GRDWIDTH+1, A1, D3)
+00001636  6600 0008               1005              BNE     .PR1BRFR
+0000163A  5201                    1006              ADDQ.B  #1, D1
+0000163C  6000 0006               1007              BRA     .FRB
+00001640  D031 3041               1008  .PR1BRFR    ADD.B   (GRDWIDTH+1, A1, D3), D0
+00001644  0C31 0002 3040          1009  .FRB        CMP.B   #2, (GRDWIDTH, A1, D3)
+0000164A  6600 0008               1010              BNE     .PR1BFR
+0000164E  5201                    1011              ADDQ.B  #1, D1
+00001650  6000 0006               1012              BRA     .FRBL
+00001654  D031 3040               1013  .PR1BFR     ADD.B   (GRDWIDTH, A1, D3), D0
+00001658  0C31 0002 303F          1014  .FRBL       CMP.B   #2, (GRDWIDTH-1, A1, D3)
+0000165E  6600 0008               1015              BNE     .PR1BLFR
+00001662  5201                    1016              ADDQ.B  #1, D1
+00001664  6000 0006               1017              BRA     .FRL
+00001668  D031 303F               1018  .PR1BLFR    ADD.B   (GRDWIDTH-1, A1, D3), D0
+0000166C  0C31 0002 30FF          1019  .FRL        CMP.B   #2, (-1, A1, D3)
+00001672  6600 0008               1020              BNE     .PR1LFR
+00001676  5201                    1021              ADDQ.B  #1, D1
+00001678  6000 0006               1022              BRA     .RULESFR
+0000167C  D031 30FF               1023  .PR1LFR     ADD.B   (-1, A1, D3), D0
+00001680  6100 04F4               1024  .RULESFR    BSR     .RULES
+00001684  4200                    1025              CLR.B   D0
+00001686  4201                    1026              CLR.B   D1
+00001688  6000 FF2E               1027              BRA     .LOOPFR
+0000168C                          1028  .ENDFC      ; NEXT CELL (LAST OF FIRST ROW)  
+0000168C                          1029                  
+0000168C                          1030              ; LAST CELL OF FIRST ROW
+0000168C                          1031              ;UP LEFT
+0000168C  0C29 0002 07FE          1032              CMP.B   #2, (GRDWIDTH*GRDHEIGH-2, A1) ; FIRST CELL, LAST ROW
+00001692  6600 0008               1033              BNE     .PLR1ULL                ; CHECK PLR1 UL
+00001696  5201                    1034              ADDQ.B  #1, D1   
+00001698  6000 0006               1035              BRA     .LASTUP
+0000169C  D029 07FE               1036  .PLR1ULL    ADD.B   (GRDWIDTH*GRDHEIGH-2, A1), D0 ; WHATEVER VALOR, WE ADD TO NP1
+000016A0                          1037              ; CHECK UPPER NEIGHBOUR
+000016A0  2F09                    1038  .LASTUP     MOVE.L  A1, -(A7)
+000016A2  D3FC 000007FF           1039              ADDA.L  #GRDWIDTH*GRDHEIGH-1, A1
+000016A8  0C11 0002               1040              CMP.B   #2, (A1)
+000016AC  6600 0008               1041              BNE     .PLR1U                
+000016B0  5201                    1042              ADDQ.B  #1, D1
+000016B2  6000 0004               1043              BRA     .LASTUR
+000016B6  D011                    1044  .PLR1U      ADD.B   (A1), D0
+000016B8  225F                    1045  .LASTUR     MOVE.L  (A7)+, A1
+000016BA                          1046              ; CHECK UPPER RIGHT NEIGHBOUR
+000016BA  2F09                    1047              MOVE.L  A1, -(A7)
+000016BC  D3FC 000007C0           1048              ADDA.L  #GRDWIDTH*GRDHEIGH-GRDWIDTH, A1
+000016C2  0C11 0002               1049              CMP.B   #2, (A1)
+000016C6  6600 0008               1050              BNE     .PLR1UR
+000016CA  5201                    1051              ADDQ.B  #1, D1
+000016CC  6000 0004               1052              BRA     .LASTR
+000016D0  D011                    1053  .PLR1UR     ADD.B   (A1), D0
+000016D2  225F                    1054  .LASTR      MOVE.L  (A7)+, A1
+000016D4                          1055              ; CHECK RIGHT NEIGHBOUR
+000016D4  0C11 0002               1056              CMP.B   #2, (A1)                ; A1 POINTS TO FIRST ROW POS
+000016D8  6600 0008               1057              BNE     .PLR1R
+000016DC  5201                    1058              ADDQ.B  #1, D1
+000016DE  6000 0004               1059              BRA     .LASTBR
+000016E2  D011                    1060  .PLR1R      ADD.B   (A1), D0
+000016E4                          1061  .LASTBR     ; CHECK BOTTOM RIGHT NEIGHBOUR
+000016E4  0C31 0002 3001          1062              CMP.B   #2, (1, A1, D3)   
+000016EA  6600 0008               1063              BNE     .PLR1BR
+000016EE  5201                    1064              ADDQ.B  #1, D1
+000016F0  6000 0006               1065              BRA     .LASTB
+000016F4  D031 3001               1066  .PLR1BR     ADD.B   (1, A1, D3), D0
+000016F8                          1067              ; CHECK BOTTOM NEIGHBOUR
+000016F8  0C31 0002 3040          1068  .LASTB      CMP.B   #2, (GRDWIDTH, A1, D3)
+000016FE  6600 0008               1069              BNE     .PLR1B
+00001702  5201                    1070              ADDQ.B  #1, D1
+00001704  6000 0006               1071              BRA     .LASTBL
+00001708  D031 3040               1072  .PLR1B      ADD.B   (GRDWIDTH, A1, D3), D0
+0000170C                          1073  .LASTBL     ; CHECK BOTTOM LEFT NEIGHBOUR
+0000170C  0C31 0002 303F          1074              CMP.B   #2, (GRDWIDTH-1, A1, D3)
+00001712  6600 0008               1075              BNE     .PLR1BL
+00001716  5201                    1076              ADDQ.B  #1, D1
+00001718  6000 0006               1077              BRA     .LASTL
+0000171C  D031 303F               1078  .PLR1BL     ADD.B   (GRDWIDTH-1, A1, D3), D0
+00001720  0C31 0002 30FF          1079  .LASTL      CMP.B   #2, (-1, A1, D3)
+00001726  6600 0008               1080              BNE     .PLR1L
+0000172A  5201                    1081              ADDQ.B  #1, D1
+0000172C  6000 0006               1082              BRA     .ENDLAST
+00001730  D031 30FF               1083  .PLR1L      ADD.B   (-1,A1, D3), D0
+00001734  6100 0440               1084  .ENDLAST    BSR     .RULES
+00001738                          1085              
+00001738                          1086              ; SECOND TO LAST-1 ROWS *******************************************
+00001738  4200                    1087              CLR.B   D0
+0000173A  4201                    1088              CLR.B   D1
+0000173C  D1FC 000007C0           1089              ADDA.L  #GRDHEIGH*GRDWIDTH-GRDWIDTH, A0 ; ADDRESS TO LAST ROW
+00001742                          1090              ;FIRST CELL OF ROW
+00001742  4203                    1091  .NXTROW     CLR.B   D3                      ; RESET X
+00001744  D3FC 00000040           1092              ADDA.L  #GRDWIDTH, A1           ; NEXT ROW
+0000174A  B3C8                    1093              CMP.L   A0, A1
+0000174C  6700 0208               1094              BEQ     .LASTROW
+00001750                          1095              ;FIRST CELL OF ROW
+00001750                          1096              ; CHECK UPPER LEFT NEIGHBOUR
+00001750  0C29 0002 FFFF          1097              CMP.B   #2, (-1, A1)
+00001756  6600 0008               1098              BNE     .P1UNFC                 ; PLAYER 1 UPPER NEIGHBOUR FIRST CELL
+0000175A  5201                    1099              ADDQ.B  #1, D1
+0000175C  6000 0006               1100              BRA     .UFC
+00001760  D029 FFFF               1101  .P1UNFC     ADD.B   (-1, A1), D0
+00001764                          1102  .UFC        ; CHECK UPPER NEIGHBOUR FIRST CELL
+00001764  0C29 0002 FFC0          1103              CMP.B   #2, (-GRDWIDTH, A1)
+0000176A  6600 0008               1104              BNE     .P1UFC
+0000176E  5201                    1105              ADDQ.B  #1, D1
+00001770  6000 0006               1106              BRA     .URFC
+00001774  D029 FFC0               1107  .P1UFC      ADD.B   (-GRDWIDTH, A1), D0
+00001778                          1108              ; CHECK UPPER RIGHT NEIGHBOUR FIRST CELL
+00001778  0C29 0002 FFC1          1109  .URFC       CMP.B   #2, (-GRDWIDTH+1, A1)
+0000177E  6600 0008               1110              BNE     .P1URFC
+00001782  5201                    1111              ADDQ.B  #1, D1
+00001784  6000 0006               1112              BRA     .RFC
+00001788  D029 FFC1               1113  .P1URFC     ADD.B   (-GRDWIDTH+1, A1), D0
+0000178C                          1114              ; CHECK RIGHT FIRST CELL
+0000178C  0C29 0002 0001          1115  .RFC        CMP.B   #2, (1, A1)
+00001792  6600 0008               1116              BNE     .P1RFC
+00001796  5201                    1117              ADDQ.B  #1, D1
+00001798  6000 0006               1118              BRA     .BRFC
+0000179C  D029 0001               1119  .P1RFC      ADD.B   (1, A1), D0
+000017A0                          1120              ; CHECK BOTTOM RIGHT FIRST CELL
+000017A0  0C29 0002 0041          1121  .BRFC       CMP.B   #2, (GRDWIDTH+1, A1)
+000017A6  6600 0008               1122              BNE     .P1BRFC
+000017AA  5201                    1123              ADDQ.B  #1, D1
+000017AC  6000 0006               1124              BRA     .BFC
+000017B0  D029 0041               1125  .P1BRFC     ADD.B   (GRDWIDTH+1, A1), D0
+000017B4                          1126              ; CHECK BOTTOM FIRST CELL
+000017B4  0C29 0002 0040          1127  .BFC        CMP.B   #2, (GRDWIDTH, A1)
+000017BA  6600 0008               1128              BNE     .P1BFC
+000017BE  5201                    1129              ADDQ.B  #1, D1
+000017C0  6000 0006               1130              BRA     .BLFC
+000017C4  D029 0040               1131  .P1BFC      ADD.B   (GRDWIDTH, A1), D0
+000017C8                          1132              ; CHECK BOTTOM LEFT FIRST CELL
+000017C8  0C29 0002 007F          1133  .BLFC       CMP.B   #2, (GRDWIDTH*2-1, A1)
+000017CE  6600 0008               1134              BNE     .P1BLFC
+000017D2  5201                    1135              ADDQ.B  #1, D1
+000017D4  6000 0006               1136              BRA     .LFC
+000017D8  D029 007F               1137  .P1BLFC     ADD.B   (GRDWIDTH*2-1, A1), D0
+000017DC                          1138              ; CHECK LEFT FIRST CELL
+000017DC  0C29 0002 003F          1139  .LFC        CMP.B   #2, (GRDWIDTH-1, A1)
+000017E2  6600 0008               1140              BNE     .P1LFC
+000017E6  5201                    1141              ADDQ.B  #1, D1
+000017E8  6000 0006               1142              BRA     .RULESFC                ; GO TO RULES
+000017EC  D029 003F               1143  .P1LFC      ADD.B   (GRDWIDTH-1, A1), D0
+000017F0  6100 0384               1144  .RULESFC    BSR     .RULES
+000017F4                          1145              
+000017F4  4200                    1146              CLR.B   D0
+000017F6  4201                    1147              CLR.B   D1
+000017F8                          1148              
+000017F8                          1149              ;LOOP REST OF CELLS (GRDWIDTH-2)
+000017F8  5203                    1150  .LOOPROW    ADDQ.B  #1, D3                  
+000017FA  B63C 003F               1151              CMP.B   #GRDWIDTH-1, D3
+000017FE  6C00 00AE               1152              BGE     .LASTRC                 ; GO TO LAST CELL OF ROW
+00001802                          1153              
+00001802                          1154              ; CHECK UPPER LEFT NEIGHBOUR
+00001802  0C31 0002 30BF          1155              CMP.B   #2, (-GRDWIDTH-1, A1, D3)
+00001808  6600 0008               1156              BNE     .P1UN                   
+0000180C  5201                    1157              ADDQ.B  #1, D1
+0000180E  6000 0006               1158              BRA     .U
+00001812  D031 30BF               1159  .P1UN       ADD.B   (-GRDWIDTH-1, A1, D3), D0
+00001816                          1160  .U          ; CHECK UPPER NEIGHBOUR
+00001816  0C31 0002 30C0          1161              CMP.B   #2, (-GRDWIDTH, A1, D3)
+0000181C  6600 0008               1162              BNE     .P1U
+00001820  5201                    1163              ADDQ.B  #1, D1
+00001822  6000 0006               1164              BRA     .UR
+00001826  D031 30C0               1165  .P1U        ADD.B   (-GRDWIDTH, A1, D3), D0
+0000182A                          1166              ; CHECK UPPER RIGHT NEIGHBOUR
+0000182A  0C31 0002 30C1          1167  .UR         CMP.B   #2, (-GRDWIDTH+1, A1, D3)
+00001830  6600 0008               1168              BNE     .P1UR
+00001834  5201                    1169              ADDQ.B  #1, D1
+00001836  6000 0006               1170              BRA     .R
+0000183A  D031 30C1               1171  .P1UR       ADD.B   (-GRDWIDTH+1, A1, D3), D0
+0000183E                          1172              ; CHECK RIGHT 
+0000183E  0C31 0002 3001          1173  .R          CMP.B   #2, (1, A1, D3)
+00001844  6600 0008               1174              BNE     .P1R
+00001848  5201                    1175              ADDQ.B  #1, D1
+0000184A  6000 0006               1176              BRA     .BR
+0000184E  D031 3001               1177  .P1R        ADD.B   (1, A1, D3), D0
+00001852                          1178              ; CHECK BOTTOM RIGHT 
+00001852  0C31 0002 3041          1179  .BR         CMP.B   #2, (GRDWIDTH+1, A1, D3)
+00001858  6600 0008               1180              BNE     .P1BR
+0000185C  5201                    1181              ADDQ.B  #1, D1
+0000185E  6000 0006               1182              BRA     .B
+00001862  D031 3041               1183  .P1BR       ADD.B   (GRDWIDTH+1, A1, D3), D0
+00001866                          1184              ; CHECK BOTTOM
+00001866  0C31 0002 3040          1185  .B          CMP.B   #2, (GRDWIDTH, A1, D3)
+0000186C  6600 0008               1186              BNE     .P1B
+00001870  5201                    1187              ADDQ.B  #1, D1
+00001872  6000 0006               1188              BRA     .BL
+00001876  D031 3040               1189  .P1B        ADD.B   (GRDWIDTH, A1, D3), D0
+0000187A                          1190              ; CHECK BOTTOM LEFT
+0000187A  0C31 0002 303F          1191  .BL         CMP.B   #2, (GRDWIDTH-1, A1, D3)
+00001880  6600 0008               1192              BNE     .P1BL
+00001884  5201                    1193              ADDQ.B  #1, D1
+00001886  6000 0006               1194              BRA     .L
+0000188A  D031 303F               1195  .P1BL       ADD.B   (GRDWIDTH-1, A1, D3), D0
+0000188E                          1196              ; CHECK LEFT
+0000188E  0C31 0002 30FF          1197  .L          CMP.B   #2, (-1, A1, D3)
+00001894  6600 0008               1198              BNE     .P1L
+00001898  5201                    1199              ADDQ.B  #1, D1
+0000189A  6000 0006               1200              BRA     .RULESRC                ; GO TO RULES FOR ROW CELL
+0000189E  D031 30FF               1201  .P1L        ADD.B   (-1, A1, D3), D0
+000018A2  6100 02D2               1202  .RULESRC    BSR     .RULES
+000018A6  4200                    1203              CLR.B   D0
+000018A8  4201                    1204              CLR.B   D1
+000018AA  6000 FF4C               1205              BRA     .LOOPROW
+000018AE                          1206                                    
+000018AE                          1207  
+000018AE                          1208              ; LAST CELL OF ROW
+000018AE                          1209  .LASTRC     ; CHECK UPPER LEFT NEIGHBOUR
+000018AE  0C31 0002 30BF          1210              CMP.B   #2, (-GRDWIDTH-1, A1, D3)
+000018B4  6600 0008               1211              BNE     .P1ULRLC                   
+000018B8  5201                    1212              ADDQ.B  #1, D1
+000018BA  6000 0006               1213              BRA     .URLC
+000018BE  D031 30BF               1214  .P1ULRLC    ADD.B   (-GRDWIDTH-1, A1, D3), D0
+000018C2                          1215  .URLC       ; CHECK UPPER NEIGHBOUR
+000018C2  0C31 0002 30C0          1216              CMP.B   #2, (-GRDWIDTH, A1, D3)
+000018C8  6600 0008               1217              BNE     .P1URLC
+000018CC  5201                    1218              ADDQ.B  #1, D1
+000018CE  6000 0006               1219              BRA     .URRLC
+000018D2  D031 30C0               1220  .P1URLC     ADD.B   (-GRDWIDTH, A1, D3), D0
+000018D6                          1221              ; CHECK UPPER RIGHT NEIGHBOUR
+000018D6  0C31 0002 3081          1222  .URRLC      CMP.B   #2, (-GRDWIDTH*2+1, A1, D3)
+000018DC  6600 0008               1223              BNE     .P1URRLC
+000018E0  5201                    1224              ADDQ.B  #1, D1
+000018E2  6000 0006               1225              BRA     .RRLC
+000018E6  D031 3081               1226  .P1URRLC    ADD.B   (-GRDWIDTH*2+1, A1, D3), D0
+000018EA                          1227              ; CHECK RIGHT 
+000018EA  0C11 0002               1228  .RRLC       CMP.B   #2, (A1)                ; FIRST CELL OF ROW
+000018EE  6600 0008               1229              BNE     .P1RRLC
+000018F2  5201                    1230              ADDQ.B  #1, D1
+000018F4  6000 0004               1231              BRA     .BRRLC
+000018F8  D011                    1232  .P1RRLC     ADD.B   (A1), D0
+000018FA                          1233              ; CHECK BOTTOM RIGHT 
+000018FA  0C31 0002 3001          1234  .BRRLC      CMP.B   #2, (1, A1, D3)
+00001900  6600 0008               1235              BNE     .P1BRRLC
+00001904  5201                    1236              ADDQ.B  #1, D1
+00001906  6000 0006               1237              BRA     .BRLC
+0000190A  D031 3001               1238  .P1BRRLC    ADD.B   (1, A1, D3), D0
+0000190E                          1239              ; CHECK BOTTOM
+0000190E  0C31 0002 3040          1240  .BRLC       CMP.B   #2, (GRDWIDTH, A1, D3)
+00001914  6600 0008               1241              BNE     .P1BRLC
+00001918  5201                    1242              ADDQ.B  #1, D1
+0000191A  6000 0006               1243              BRA     .BLRLC
+0000191E  D031 3040               1244  .P1BRLC     ADD.B   (GRDWIDTH, A1, D3), D0
+00001922                          1245              ; CHECK BOTTOM LEFT
+00001922  0C31 0002 303F          1246  .BLRLC      CMP.B   #2, (GRDWIDTH-1, A1, D3)
+00001928  6600 0008               1247              BNE     .P1BLRLC
+0000192C  5201                    1248              ADDQ.B  #1, D1
+0000192E  6000 0006               1249              BRA     .LRLC
+00001932  D031 303F               1250  .P1BLRLC    ADD.B   (GRDWIDTH-1, A1, D3), D0
+00001936                          1251              ; CHECK LEFT
+00001936  0C31 0002 30FF          1252  .LRLC       CMP.B   #2, (-1, A1, D3)
+0000193C  6600 0008               1253              BNE     .P1LRLC
+00001940  5201                    1254              ADDQ.B  #1, D1
+00001942  6000 0006               1255              BRA     .RULESRLC                ; GO TO RULES FOR ROW LAST CELL
+00001946  D031 30FF               1256  .P1LRLC     ADD.B   (-1, A1, D3), D0
+0000194A  6100 022A               1257  .RULESRLC   BSR     .RULES
+0000194E  4200                    1258              CLR.B   D0
+00001950  4201                    1259              CLR.B   D1
+00001952  6000 FDEE               1260              BRA     .NXTROW
+00001956                          1261              
+00001956                          1262              ; LAST ROW
+00001956                          1263  .LASTROW    ; FIRST CELL OF LAST ROW
+00001956                          1264              ; CHECK UPPER LEFT NEIGHBOUR
+00001956  0C31 0002 30FF          1265              CMP.B   #2, (-1, A1, D3)
+0000195C  6600 0008               1266              BNE     .P1ULFLR                ; PLAYER 1 UL FIRST LAST ROW               
+00001960  5201                    1267              ADDQ.B  #1, D1
+00001962  6000 0006               1268              BRA     .UFLR
+00001966  D031 30FF               1269  .P1ULFLR    ADD.B   (-1, A1, D3), D0
+0000196A                          1270  .UFLR       ; CHECK UPPER NEIGHBOUR
+0000196A  0C29 0002 FFC0          1271              CMP.B   #2, (-GRDWIDTH, A1)
+00001970  6600 0008               1272              BNE     .P1UFLR
+00001974  5201                    1273              ADDQ.B  #1, D1
+00001976  6000 0006               1274              BRA     .URFLR
+0000197A  D029 FFC0               1275  .P1UFLR     ADD.B   (-GRDWIDTH, A1), D0
+0000197E                          1276              ; CHECK UPPER RIGHT NEIGHBOUR
+0000197E  0C29 0002 FFC1          1277  .URFLR      CMP.B   #2, (-GRDWIDTH+1, A1)
+00001984  6600 0008               1278              BNE     .P1URFLR
+00001988  5201                    1279              ADDQ.B  #1, D1
+0000198A  6000 0006               1280              BRA     .RFLR
+0000198E  D029 FFC1               1281  .P1URFLR    ADD.B   (-GRDWIDTH+1, A1), D0
+00001992                          1282              ; CHECK RIGHT 
+00001992  0C29 0002 0001          1283  .RFLR       CMP.B   #2, (1, A1)                ; FIRST CELL OF ROW
+00001998  6600 0008               1284              BNE     .P1RFLR
+0000199C  5201                    1285              ADDQ.B  #1, D1
+0000199E  6000 0006               1286              BRA     .BRFLR
+000019A2  D029 0001               1287  .P1RFLR     ADD.B   (1, A1), D0
+000019A6                          1288              ; CHECK BOTTOM RIGHT 
+000019A6  2F09                    1289  .BRFLR      MOVE.L  A1, -(A7)
+000019A8  2279 000022C2           1290              MOVE.L  (GRDSRC), A1
+000019AE  0C29 0002 0001          1291              CMP.B   #2, (1, A1)             ; SECOND CELL OF MATRIX
+000019B4  6600 0008               1292              BNE     .P1BRFLR
+000019B8  5201                    1293              ADDQ.B  #1, D1
+000019BA  6000 0006               1294              BRA     .BFLR
+000019BE  D029 0001               1295  .P1BRFLR    ADD.B   (1, A1), D0         
+000019C2                          1296  .BFLR       ; CHECK BOTTOM
+000019C2  0C11 0002               1297              CMP.B   #2, (A1)                ; FIRST CELL OF MATRIX
+000019C6  6600 0008               1298              BNE     .P1BFLR
+000019CA  5201                    1299              ADDQ.B  #1, D1
+000019CC  6000 0004               1300              BRA     .BLFLR
+000019D0  D011                    1301  .P1BFLR     ADD.B   (A1), D0
+000019D2                          1302  .BLFLR      ; CHECK BOTTOM LEFT
+000019D2  0C29 0002 003F          1303              CMP.B   #2, (GRDWIDTH-1, A1)    ; LAST CELL OF FIRST ROW
+000019D8  6600 0008               1304              BNE     .P1BLFLR
+000019DC  5201                    1305              ADDQ.B  #1, D1
+000019DE  6000 0006               1306              BRA     .LFLR
+000019E2  D029 003F               1307  .P1BLFLR    ADD.B   (GRDWIDTH-1, A1), D0
+000019E6  225F                    1308  .LFLR       MOVE.L  (A7)+, A1
+000019E8                          1309              ; CHECK LEFT
+000019E8  0C29 0002 003F          1310              CMP.B   #2, (GRDWIDTH-1, A1)
+000019EE  6600 0008               1311              BNE     .P1LFLR
+000019F2  5201                    1312              ADDQ.B  #1, D1
+000019F4  6000 0006               1313              BRA     .RULESFLR                ; GO TO RULES FOR ROW LAST CELL
+000019F8  D029 003F               1314  .P1LFLR     ADD.B   (GRDWIDTH-1, A1), D0
+000019FC  6100 0178               1315  .RULESFLR   BSR     .RULES
+00001A00  4200                    1316              CLR.B   D0
+00001A02  4201                    1317              CLR.B   D1
+00001A04  4203                    1318              CLR.B   D3                      ; RESET X
+00001A06                          1319              ; CELLS UNTIL LAST CELL OF LAST ROW
+00001A06  5203                    1320  .LOOPCLR    ADDQ.B  #1, D3
+00001A08  B63C 003F               1321              CMP.B   #GRDWIDTH-1, D3
+00001A0C  6C00 00B8               1322              BGE     .LCM                    ; LAST CELL OF MATRIX
+00001A10                          1323              ; CHECK UPPER LEFT NEIGHBOUR
+00001A10  0C31 0002 30BF          1324              CMP.B   #2, (-GRDWIDTH-1, A1, D3)
+00001A16  6600 0008               1325              BNE     .P1ULCLR                ; CELLS OF LAST ROW (CLR)                             
+00001A1A  5201                    1326              ADDQ.B  #1, D1
+00001A1C  6000 0006               1327              BRA     .UCLR
+00001A20  D031 30BF               1328  .P1ULCLR    ADD.B   (-GRDWIDTH-1, A1, D3), D0
+00001A24                          1329  .UCLR       ; CHECK UPPER NEIGHBOUR
+00001A24  0C31 0002 30C0          1330              CMP.B   #2, (-GRDWIDTH, A1, D3)
+00001A2A  6600 0008               1331              BNE     .P1UCLR
+00001A2E  5201                    1332              ADDQ.B  #1, D1
+00001A30  6000 0006               1333              BRA     .URCLR
+00001A34  D031 30C0               1334  .P1UCLR     ADD.B   (-GRDWIDTH, A1, D3), D0
+00001A38                          1335              ; CHECK UPPER RIGHT NEIGHBOUR
+00001A38  0C31 0002 30C1          1336  .URCLR      CMP.B   #2, (-GRDWIDTH+1, A1, D3)
+00001A3E  6600 0008               1337              BNE     .P1URCLR
+00001A42  5201                    1338              ADDQ.B  #1, D1
+00001A44  6000 0006               1339              BRA     .RCLR
+00001A48  D031 30C1               1340  .P1URCLR    ADD.B   (-GRDWIDTH+1, A1, D3), D0
+00001A4C                          1341              ; CHECK RIGHT 
+00001A4C  0C31 0002 3001          1342  .RCLR       CMP.B   #2, (1, A1, D3)                
+00001A52  6600 0008               1343              BNE     .P1RCLR
+00001A56  5201                    1344              ADDQ.B  #1, D1
+00001A58  6000 0006               1345              BRA     .BRCLR
+00001A5C  D031 3001               1346  .P1RCLR     ADD.B   (1, A1, D3), D0
+00001A60                          1347              ; CHECK BOTTOM RIGHT 
+00001A60  2F09                    1348  .BRCLR      MOVE.L  A1, -(A7)
+00001A62  2279 000022C2           1349              MOVE.L  (GRDSRC), A1
+00001A68  0C31 0002 3001          1350              CMP.B   #2, (1, A1, D3)         ; COINCIDENT CELL FIRST ROW
+00001A6E  6600 0008               1351              BNE     .P1BRCLR
+00001A72  5201                    1352              ADDQ.B  #1, D1
+00001A74  6000 0006               1353              BRA     .BCLR
+00001A78  D031 3001               1354  .P1BRCLR    ADD.B   (1, A1, D3), D0         
+00001A7C                          1355  .BCLR       ; CHECK BOTTOM
+00001A7C  0C31 0002 3000          1356              CMP.B   #2, (A1, D3)            ; COINCIDENT CELL FIRST ROW
+00001A82  6600 0008               1357              BNE     .P1BCLR
+00001A86  5201                    1358              ADDQ.B  #1, D1
+00001A88  6000 0006               1359              BRA     .BLCLR
+00001A8C  D031 3000               1360  .P1BCLR     ADD.B   (A1, D3), D0
+00001A90                          1361  .BLCLR      ; CHECK BOTTOM LEFT
+00001A90  0C31 0002 30FF          1362              CMP.B   #2, (-1, A1, D3)        ; LAST CELL OF FIRST ROW
+00001A96  6600 0008               1363              BNE     .P1BLCLR
+00001A9A  5201                    1364              ADDQ.B  #1, D1
+00001A9C  6000 0006               1365              BRA     .LCLR
+00001AA0  D031 30FF               1366  .P1BLCLR    ADD.B   (-1, A1, D3), D0
+00001AA4  225F                    1367  .LCLR       MOVE.L  (A7)+, A1
+00001AA6                          1368              ; CHECK LEFT
+00001AA6  0C31 0002 30FF          1369              CMP.B   #2, (-1, A1, D3)
+00001AAC  6600 0008               1370              BNE     .P1LCLR
+00001AB0  5201                    1371              ADDQ.B  #1, D1
+00001AB2  6000 0006               1372              BRA     .RULESCLR                ; GO TO RULES FOR ROW LAST CELL
+00001AB6  D031 30FF               1373  .P1LCLR     ADD.B   (-1, A1, D3), D0
+00001ABA  6100 00BA               1374  .RULESCLR   BSR     .RULES
+00001ABE  4200                    1375              CLR.B   D0
+00001AC0  4201                    1376              CLR.B   D1
+00001AC2  6000 FF42               1377              BRA     .LOOPCLR     
+00001AC6                          1378              ; LAST CELL OF LAST ROW
+00001AC6                          1379  .LCM        ; CHECK UPPER LEFT NEIGHBOUR
+00001AC6  0C31 0002 30BF          1380              CMP.B   #2, (-GRDWIDTH-1, A1, D3)
+00001ACC  6600 0008               1381              BNE     .P1ULLCM                ; PLAYER 1 UL FIRST LAST ROW               
+00001AD0  5201                    1382              ADDQ.B  #1, D1
+00001AD2  6000 0006               1383              BRA     .ULCM
+00001AD6  D031 30BF               1384  .P1ULLCM    ADD.B   (-GRDWIDTH-1, A1, D3), D0
+00001ADA                          1385  .ULCM       ; CHECK UPPER NEIGHBOUR
+00001ADA  0C31 0002 30C0          1386              CMP.B   #2, (-GRDWIDTH, A1, D3)
+00001AE0  6600 0008               1387              BNE     .P1ULCM
+00001AE4  5201                    1388              ADDQ.B  #1, D1
+00001AE6  6000 0006               1389              BRA     .URLCM
+00001AEA  D031 30C0               1390  .P1ULCM     ADD.B   (-GRDWIDTH, A1, D3), D0
+00001AEE                          1391              ; CHECK UPPER RIGHT NEIGHBOUR
+00001AEE  0C29 0002 FFC0          1392  .URLCM      CMP.B   #2, (-GRDWIDTH, A1)            
+00001AF4  6600 0008               1393              BNE     .P1URLCM
+00001AF8  5201                    1394              ADDQ.B  #1, D1
+00001AFA  6000 0006               1395              BRA     .RLCM
+00001AFE  D029 FFC0               1396  .P1URLCM    ADD.B   (-GRDWIDTH, A1), D0     ; CELL UP FROM FIRST OF LAST ROW
+00001B02                          1397              ; CHECK RIGHT 
+00001B02  0C11 0002               1398  .RLCM       CMP.B   #2, (A1)                ; POINTER TO FIRST CELL IN ROW 
+00001B06  6600 0008               1399              BNE     .P1RLCM
+00001B0A  5201                    1400              ADDQ.B  #1, D1
+00001B0C  6000 0004               1401              BRA     .BRLCM
+00001B10  D011                    1402  .P1RLCM     ADD.B   (A1), D0
+00001B12                          1403              ; CHECK BOTTOM RIGHT 
+00001B12  2F09                    1404  .BRLCM      MOVE.L  A1, -(A7)
+00001B14  2279 000022C2           1405              MOVE.L  (GRDSRC), A1
+00001B1A  0C11 0002               1406              CMP.B   #2, (A1)                ; FIRST CELL OF MATRIX
+00001B1E  6600 0008               1407              BNE     .P1BRLCM
+00001B22  5201                    1408              ADDQ.B  #1, D1
+00001B24  6000 0004               1409              BRA     .BLCM
+00001B28  D011                    1410  .P1BRLCM    ADD.B   (A1), D0         
+00001B2A                          1411  .BLCM       ; CHECK BOTTOM
+00001B2A  0C29 0002 003F          1412              CMP.B   #2, (GRDWIDTH-1, A1)  ; FIRST CELL OF MATRIX
+00001B30  6600 0008               1413              BNE     .P1BLCM
+00001B34  5201                    1414              ADDQ.B  #1, D1
+00001B36  6000 0006               1415              BRA     .BLLCM
+00001B3A  D029 003F               1416  .P1BLCM     ADD.B   (GRDWIDTH-1, A1), D0
+00001B3E                          1417  .BLLCM      ; CHECK BOTTOM LEFT
+00001B3E  0C29 0002 003E          1418              CMP.B   #2, (GRDWIDTH-2, A1) ; LAST CELL OF FIRST ROW
+00001B44  6600 0008               1419              BNE     .P1BLLCM
+00001B48  5201                    1420              ADDQ.B  #1, D1
+00001B4A  6000 0006               1421              BRA     .LLCM
+00001B4E  D029 003E               1422  .P1BLLCM    ADD.B   (GRDWIDTH-2, A1), D0
+00001B52  225F                    1423  .LLCM       MOVE.L  (A7)+, A1
+00001B54                          1424              ; CHECK LEFT
+00001B54  0C31 0002 30FF          1425              CMP.B   #2, (-1, A1, D3)
+00001B5A  6600 0008               1426              BNE     .P1LLCM
+00001B5E  5201                    1427              ADDQ.B  #1, D1
+00001B60  6000 0006               1428              BRA     .RULESLCM                ; GO TO RULES FOR ROW LAST CELL
+00001B64  D031 30FF               1429  .P1LLCM     ADD.B   (-1, A1, D3), D0
+00001B68  6100 000C               1430  .RULESLCM   BSR     .RULES
+00001B6C  4200                    1431              CLR.B   D0
+00001B6E  4201                    1432              CLR.B   D1
+00001B70                          1433              ; RETURN SUBRUTINE, WE FINISHED
+00001B70                          1434  .ENDUPD     
+00001B70  4CDF 1F9F               1435              MOVEM.L (A7)+, D0-D4/D7/A0-A4   
+00001B74  4E75                    1436              RTS       
+00001B76                          1437  
+00001B76                          1438  
+00001B76                          1439  ;**************************** ALL CELLS CHECKED *******************************              
+00001B76                          1440  .RULES      ; WE HAVE NP1 IN D0 AND NP2 IN D1
+00001B76  1E1A                    1441              MOVE.B  (A2)+, D7               ; GET VALOR
+00001B78  BE3C 0002               1442              CMP.B   #2, D7                  ; IS PLR2 CELL?
+00001B7C  6600 0040               1443              BNE     .CHECKPL1
+00001B80                          1444              ;PLR2 RULES
+00001B80  48E7 E000               1445              MOVEM.L D0-D2, -(A7)
+00001B84  2401                    1446              MOVE.L  D1, D2                  ; STORE NP2
+00001B86  9200                    1447              SUB.B   D0, D1                  ; NP2-NP1
+00001B88  B23C 0003               1448              CMP.B   #3, D1                  ; IS IT 3?
+00001B8C  6600 0006               1449              BNE     .PLR2IS2
+00001B90                          1450              ; ALREADY A P2 CELL, WE DO NOTHING
+00001B90  6000 0024               1451              BRA     .P2END
+00001B94  B23C 0002               1452  .PLR2IS2    CMP.B   #2, D1                  ; OR IS IT 2
+00001B98  6600 0006               1453              BNE     .PLR2IS1
+00001B9C                          1454              ; ALREADY A P2 CELL, WE DO NOTHING 
+00001B9C  6000 0018               1455              BRA     .P2END  
+00001BA0  B23C 0001               1456  .PLR2IS1    CMP.B   #1, D1                  ; IF IS 1 
+00001BA4  6600 000E               1457              BNE     .PLR2IS0                
+00001BA8  B43C 0002               1458              CMP.B   #2, D2                  ; NP2 >= 2?
+00001BAC  6D00 0006               1459              BLT     .PLR2IS0
+00001BB0                          1460              ; ALREADY A P2 CELL, WE DO NOTHING     
+00001BB0  6000 0004               1461              BRA     .P2END   
+00001BB4  4207                    1462  .PLR2IS0    CLR.B   D7 
+00001BB6  4CDF 0007               1463  .P2END      MOVEM.L (A7)+, D0-D2
+00001BBA  6000 00A0               1464              BRA     .NEXT                   ; GO TO NEXT CELL
+00001BBE                          1465              
+00001BBE                          1466              
+00001BBE                          1467              
+00001BBE                          1468              
+00001BBE  BE3C 0001               1469  .CHECKPL1   CMP.B   #1, D7
+00001BC2  6600 0040               1470              BNE     .EMPTY
+00001BC6                          1471              ; PLR1 RULES
+00001BC6  48E7 E000               1472              MOVEM.L D0-D2, -(A7)
+00001BCA  2400                    1473              MOVE.L  D0, D2
+00001BCC  9001                    1474              SUB.B   D1, D0                  ; NP1-NP2
+00001BCE  B03C 0003               1475              CMP.B   #3, D0                  ; IS IT 3?
+00001BD2  6600 0006               1476              BNE     .PLR1IS2
+00001BD6                          1477              ; ALREADY A P1 CELL, WE DO NOTHING
+00001BD6  6000 0024               1478              BRA     .P1END
+00001BDA  B03C 0002               1479  .PLR1IS2    CMP.B   #2, D0                  ; OR IS IT 2
+00001BDE  6600 0006               1480              BNE     .PLR1IS1
+00001BE2                          1481              ; ALREADY A P1 CELL, WE DO NOTHING 
+00001BE2  6000 0018               1482              BRA     .P1END  
+00001BE6  B03C 0001               1483  .PLR1IS1    CMP.B   #1, D0                  ; IF IS 1 
+00001BEA  6600 000E               1484              BNE     .PLR1IS0                
+00001BEE  B43C 0002               1485              CMP.B   #2, D2                  ; NP1>=2?
+00001BF2  6D00 0006               1486              BLT     .PLR1IS0
+00001BF6                          1487              ; ALREADY A P1 CELL, WE DO NOTHING     
+00001BF6  6000 0004               1488              BRA     .P1END   
+00001BFA  4207                    1489  .PLR1IS0    CLR.B   D7 
+00001BFC  4CDF 0007               1490  .P1END      MOVEM.L (A7)+, D0-D2
+00001C00  6000 005A               1491              BRA     .NEXT
+00001C04                          1492              
+00001C04                          1493  .EMPTY      
+00001C04  2F01                    1494              MOVE.L  D1, -(A7)
+00001C06  8200                    1495              OR.B    D0, D1                  ; SEE IF ANY VALUE IN BOTH
+00001C08  4A01                    1496              TST.B   D1
+00001C0A  6700 0054               1497              BEQ     .NONG                   ; NO NEIGHBOURS
+00001C0E  221F                    1498              MOVE.L  (A7)+, D1
+00001C10  48E7 4000               1499              MOVEM.L D1, -(A7)               ; SAVE COUNTERS
+00001C14  C200                    1500              AND.B   D0, D1                  ; IF D1=3, NP1=NP2
+00001C16  B23C 0003               1501              CMP.B   #3, D1
+00001C1A  6600 0010               1502              BNE     .NORAND                 ; CHECK OTHER POSSIBILITIES
+00001C1E  4EB8 10F6               1503              JSR     UTLRAND
+00001C22  1E01                    1504              MOVE.B  D1, D7
+00001C24  4CDF 0002               1505              MOVEM.L (A7)+, D1
+00001C28  6000 0032               1506              BRA     .NEXT
+00001C2C                          1507              
+00001C2C  4CDF 0002               1508  .NORAND     MOVEM.L (A7)+, D1
+00001C30  B23C 0003               1509              CMP.B   #3, D1                  ; HAS PL2 EXACTLY 3 NEIGHBOURS?
+00001C34  6600 0012               1510              BNE     .CHECKP1                ; IF NOT CHECK PL1
+00001C38  B03C 0003               1511              CMP.B   #3, D0                  ; IS NP1 != 3?
+00001C3C  6700 000A               1512              BEQ     .CHECKP1
+00001C40  1E3C 0002               1513              MOVE.B  #2, D7                  ; NEW PL2 CELL IS BORN
+00001C44  6000 0016               1514              BRA     .NEXT
+00001C48                          1515              
+00001C48  B03C 0003               1516  .CHECKP1    CMP.B   #3, D0                  ; HAS PL1 EXACTLY 3 NEIGHBOURS?
+00001C4C  6600 000E               1517              BNE     .NEXT                   ; NO CELL IS BORN
+00001C50  B23C 0003               1518              CMP.B   #3, D1                  ; IS NP2 != 3?
+00001C54  6700 0006               1519              BEQ     .NEXT
+00001C58  1E3C 0001               1520              MOVE.B  #1, D7                  ; NEW PL1 CELL IS BORN
+00001C5C  16C7                    1521  .NEXT       MOVE.B  D7, (A3)+               ; EDIT CELL, STORE IT, NEXT CELL
+00001C5E  4E75                    1522              RTS
+00001C60                          1523   
+00001C60  221F                    1524  .NONG       MOVE.L  (A7)+, D1
+00001C62  60F8                    1525              BRA     .NEXT
+00001C64                          1526        
+00001C64                          1527  ; -----------------------------------------------------------------------------
+00001C64                          1528  GRDSAVE
+00001C64                          1529  ; SAVES THE GRID INTO A FILE IN CSV FORMAT
+00001C64                          1530  ; INPUT    : NONE
+00001C64                          1531  ; OUTPUT   : NONE
+00001C64                          1532  ; MODIFIES : NONE
+00001C64                          1533  ; NOTE     : THE LOCAL BUFFER SIZE MUST BE MAX(512,2*GRDWIDTH+1). PLEASE CHANGE
+00001C64                          1534  ;            IT ACCORDINGLY IF GRDWIDTH*2+1 IS LARGER THAN 512.
+00001C64                          1535  ; -----------------------------------------------------------------------------
+00001C64  48E7 FFFE               1536              MOVEM.L D0-D7/A0-A6,-(A7)       ; TO BE OPTIMIZED
+00001C68  103C 0032               1537              MOVE.B  #50,D0                  ; CLOSE ALL FILES (RECOMMENDED)
+00001C6C  4E4F                    1538              TRAP    #15
+00001C6E  9FFC 00000200           1539              SUB.L   #512,A7                 ; ROW BUFFER IN LOCAL MEMORY
+00001C74  103C 003A               1540              MOVE.B  #58,D0                  ; SHOW FILE DIALOG TASK
+00001C78  7201                    1541              MOVE.L  #1,D1                   ; DISPLAY SAVE DIALOG
+00001C7A  43F9 00001CF0           1542              LEA     .MSG,A1                 ; STANDARD MESSAGE
+00001C80  45F9 00001D0A           1543              LEA     .FILTER,A2              ; NO FILTER
+00001C86  264F                    1544              MOVE.L  A7,A3                   ; FILE NAME BUFFER
+00001C88  4253                    1545              CLR.W   (A3)                    ; ENSURE THERE IS NO STRING
+00001C8A  4E4F                    1546              TRAP    #15
+00001C8C  4A01                    1547              TST.B   D1
+00001C8E  6700 0054               1548              BEQ     .END                    ; IF CANCELLED, DO NOTHING
+00001C92  224B                    1549              MOVE.L  A3,A1                   ; PLACE THE FILENAME INTO A1
+00001C94  103C 0034               1550              MOVE.B  #52,D0                  ; CREATE NEW FILE
+00001C98  4E4F                    1551              TRAP    #15
+00001C9A  4A40                    1552              TST.W   D0                      ; CHECK CREATION ERROR
+00001C9C  6600 0046               1553              BNE     .END                    ; DO NOTHING MORE IF ERROR
+00001CA0  2C4F                    1554              MOVE.L  A7,A6                   ; PUT A6 INTO START OF BUFFER
+00001CA2  224F                    1555              MOVE.L  A7,A1                   ; PUT A1 INTO START OF BUFFER
+00001CA4  2079 000022C6           1556              MOVE.L  (GRDDST), A0            ; A0: POINTER TO THE DATA TO WRITE
+00001CAA  363C 001F               1557              MOVE.W  #GRDHEIGH-1,D3          ; D3: NUMBER OF ROWS - 1
+00001CAE  343C 003F               1558  .LOOPY      MOVE.W  #GRDWIDTH-1,D2          ; D2: NUMBER OF COLUMNS - 1
+00001CB2  103C 0030               1559  .LOOP       MOVE.B  #'0',D0                 ; ADD CHAR '0' AND THE CELL VALUE
+00001CB6  D018                    1560              ADD.B   (A0)+,D0
+00001CB8  1CC0                    1561              MOVE.B  D0, (A6)+               ; STORE IT IN THE BUFFER
+00001CBA  1CFC 002C               1562              MOVE.B  #',',(A6)+              ; NOW PUT THE COMMA
+00001CBE  51CA FFF2               1563              DBRA.W  D2,.LOOP
+00001CC2  1D7C 000D FFFF          1564              MOVE.B  #$0D,-1(A6)             ; STORE CARRIAGE RETURN (REMOVE ',')
+00001CC8  1CBC 000A               1565              MOVE.B  #$0A,(A6)               ; STORE LINE FEED
+00001CCC  103C 0036               1566              MOVE.B  #54,D0                  ; WRITE TO FILE TASK NUMBER
+00001CD0  243C 00000081           1567              MOVE.L  #GRDWIDTH*2+1,D2        ; NUMBER OF BYTES TO WRITE
+00001CD6  4E4F                    1568              TRAP    #15                     ; WRITE (A1 IS ALREADY THERE)
+00001CD8  2C49                    1569              MOVE.L  A1,A6                   ; GO BACK TO THE BUFFER START
+00001CDA  51CB FFD2               1570              DBRA.W  D3,.LOOPY
+00001CDE  103C 0038               1571              MOVE.B  #56,D0                  ; CLOSE FILE
+00001CE2  4E4F                    1572              TRAP    #15
+00001CE4  DFFC 00000200           1573  .END        ADD.L   #512,A7                 ; RESTORE STACK
+00001CEA  4CDF 7FFF               1574              MOVEM.L (A7)+,D0-D7/A0-A6       ; TO BE OPTIMIZED
+00001CEE  4E75                    1575              RTS
+00001CF0= 53 45 4C 45 43 54 ...   1576  .MSG        DC.B    'SELECT A CSV FILE TO SAVE',0
+00001D0A= 2A 2E 43 53 56 00       1577  .FILTER     DC.B    '*.CSV',0
+00001D10                          1578              DS.W    0
+00001D10                          1579  
+00001D10                          1580  ; -----------------------------------------------------------------------------
+00001D10                          1581  GRDLOAD
+00001D10                          1582  ; LOADS THE GRID FROM A CSV FORMATTED FILE
+00001D10                          1583  ; INPUT    : NONE
+00001D10                          1584  ; OUTPUT   : NONE
+00001D10                          1585  ; MODIFIES : NONE
+00001D10                          1586  ; NOTE     : THE LOCAL BUFFER SIZE MUST BE MAX(512,2*GRDWIDTH+1). PLEASE CHANGE
+00001D10                          1587  ;            IT ACCORDINGLY IF GRDWIDTH*2+1 IS LARGER THAN 512.
+00001D10                          1588  ; -----------------------------------------------------------------------------
+00001D10  48E7 F8F2               1589              MOVEM.L D0-D4/A0-A3/A6,-(A7)    ; TO BE OPTIMIZED
+00001D14  103C 0032               1590              MOVE.B  #50,D0                  ; CLOSE ALL FILES (RECOMMENDED)
+00001D18  4E4F                    1591              TRAP    #15
+00001D1A  9FFC 00000200           1592              SUB.L   #512,A7                 ; ROW BUFFER IN LOCAL MEMORY
+00001D20  103C 003A               1593              MOVE.B  #58,D0                  ; SHOW FILE DIALOG TASK
+00001D24  4281                    1594              CLR.L   D1                      ; DISPLAY LOAD DIALOG
+00001D26  43F9 00001D90           1595              LEA     .MSG,A1                 ; STANDARD MESSAGE
+00001D2C  45F9 00001DAA           1596              LEA     .FILTER,A2              ; NO FILTER
+00001D32  264F                    1597              MOVE.L  A7,A3                   ; FILE NAME BUFFER
+00001D34  4253                    1598              CLR.W   (A3)                    ; ENSURE THERE IS NO STRING
+00001D36  4E4F                    1599              TRAP    #15
+00001D38  4A01                    1600              TST.B   D1
+00001D3A  6700 0048               1601              BEQ     .END                    ; IF CANCELLED, DO NOTHING
+00001D3E  224B                    1602              MOVE.L  A3,A1                   ; PLACE THE FILENAME INTO A1
+00001D40  103C 0033               1603              MOVE.B  #51,D0                  ; OPEN EXISTING FILE
+00001D44  4E4F                    1604              TRAP    #15
+00001D46  4A40                    1605              TST.W   D0                      ; CHECK ERRORS
+00001D48  6600 003A               1606              BNE     .END                    ; IF ERRORS, DO NOTHING MORE
+00001D4C  2C4F                    1607              MOVE.L  A7,A6                   ; PUT A6 INTO START OF BUFFER
+00001D4E  224F                    1608              MOVE.L  A7,A1                   ; PUT A1 INTO START OF BUFFER
+00001D50  2079 000022C6           1609              MOVE.L  (GRDDST), A0            ; POINTER TO STORE PROCESS. DATA
+00001D56  363C 001F               1610              MOVE.W  #GRDHEIGH-1,D3
+00001D5A  224E                    1611  .LOOP       MOVE.L  A6,A1
+00001D5C  103C 0035               1612              MOVE.B  #53,D0                  ; READ DATA TASK NUMBER
+00001D60  243C 00000081           1613              MOVE.L  #GRDWIDTH*2+1,D2        ; NUMBER OF BYTES TO READ
+00001D66  4E4F                    1614              TRAP    #15                     ; READ THE DATA
+00001D68  343C 003F               1615              MOVE.W  #GRDWIDTH-1,D2
+00001D6C  1019                    1616  .COPY       MOVE.B  (A1)+,D0                ; PICK ONE LOADED CHARACTER
+00001D6E  0400 0030               1617              SUB.B   #'0',D0                 ; CONVERT FROM ASCII TO NUMBER
+00001D72  10C0                    1618              MOVE.B  D0,(A0)+                ; STORE DATA
+00001D74  5289                    1619              ADDQ.L  #1,A1                   ; SKIP THE COMMA
+00001D76  51CA FFF4               1620              DBRA.W  D2,.COPY
+00001D7A  51CB FFDE               1621              DBRA.W  D3,.LOOP
+00001D7E  103C 0038               1622              MOVE.B  #56,D0                  ; CLOSE FILE
+00001D82  4E4F                    1623              TRAP    #15
+00001D84  DFFC 00000200           1624  .END        ADD.L   #512,A7                 ; RESTORE STACK
+00001D8A  4CDF 4F1F               1625              MOVEM.L (A7)+,D0-D4/A0-A3/A6    ; TO BE OPTIMIZED
+00001D8E  4E75                    1626              RTS
+00001D90= 53 45 4C 45 43 54 ...   1627  .MSG        DC.B    'SELECT A CSV FILE TO LOAD',0
+00001DAA= 2A 2E 43 53 56 00       1628  .FILTER     DC.B    '*.CSV',0
+00001DB0                          1629              DS.W    0
+00001DB0                          1630  
+00001DB0                          1631  ; -----------------------------------------------------------------------------
+00001DB0                          1632  GRDLLEFT
+00001DB0                          1633  ; LOADS THE LEFT PART OF THE GRID FROM A CSV FORMATTED FILE
+00001DB0                          1634  ; INPUT    : NONE
+00001DB0                          1635  ; OUTPUT   : NONE
+00001DB0                          1636  ; MODIFIES : NONE
+00001DB0                          1637  ; NOTE     : THE LOCAL BUFFER SIZE MUST BE MAX(512,2*GRDWIDTH+1). PLEASE CHANGE
+00001DB0                          1638  ;            IT ACCORDINGLY IF GRDWIDTH*2+1 IS LARGER THAN 512.
+00001DB0                          1639  ; NOTE     : ALL THE ACTIVE CELLS ARE STORED AS PLAYER 1 INDEPENDLY OF THEIR
+00001DB0                          1640  ;            ACTUAL VALUE.
+00001DB0                          1641  ; -----------------------------------------------------------------------------
+00001DB0                          1642  
+00001DB0                          1643  ; TODO : PLACE YOUR CODE HERE
+00001DB0  48E7 F8F2               1644              MOVEM.L D0-D4/A0-A3/A6, -(A7)
+00001DB4  4284                    1645              CLR.L   D4                      ; COUNTER
+00001DB6  103C 0032               1646              MOVE.B  #50,D0                  ; CLOSE ALL FILES (RECOMMENDED)
+00001DBA  4E4F                    1647              TRAP    #15
+00001DBC  9FFC 00000200           1648              SUB.L   #512,A7                 ; ROW BUFFER IN LOCAL MEMORY
+00001DC2  103C 003A               1649              MOVE.B  #58,D0                  ; SHOW FILE DIALOG TASK
+00001DC6  4281                    1650              CLR.L   D1                      ; DISPLAY LOAD DIALOG
+00001DC8  43F9 00001E3C           1651              LEA     .MSG,A1                 ; STANDARD MESSAGE
+00001DCE  45F9 00001E56           1652              LEA     .FILTER,A2              ; NO FILTER
+00001DD4  264F                    1653              MOVE.L  A7,A3                   ; FILE NAME BUFFER
+00001DD6  4253                    1654              CLR.W   (A3)                    ; ENSURE THERE IS NO STRING
+00001DD8  4E4F                    1655              TRAP    #15
+00001DDA  4A01                    1656              TST.B   D1
+00001DDC  6700 0052               1657              BEQ     .END                    ; IF CANCELLED, DO NOTHING
+00001DE0  224B                    1658              MOVE.L  A3,A1                   ; PLACE THE FILENAME INTO A1
+00001DE2  103C 0033               1659              MOVE.B  #51,D0                  ; OPEN EXISTING FILE
+00001DE6  4E4F                    1660              TRAP    #15
+00001DE8  4A40                    1661              TST.W   D0                      ; CHECK ERRORS
+00001DEA  6600 0044               1662              BNE     .END                    ; IF ERRORS, DO NOTHING MORE
+00001DEE  2C4F                    1663              MOVE.L  A7,A6                   ; PUT A6 INTO START OF BUFFER
+00001DF0  224F                    1664              MOVE.L  A7,A1                   ; PUT A1 INTO START OF BUFFER
+00001DF2  2079 000022C6           1665              MOVE.L  (GRDDST), A0            ; POINTER TO STORE PROCESS DATA
+00001DF8  363C 001F               1666              MOVE.W  #GRDHEIGH-1,D3
+00001DFC  224E                    1667  .LOOP       MOVE.L  A6,A1
+00001DFE  103C 0035               1668              MOVE.B  #53,D0                  ; READ DATA TASK NUMBER
+00001E02  243C 00000081           1669              MOVE.L  #GRDWIDTH*2+1,D2        ; NUMBER OF BYTES TO READ
+00001E08  4E4F                    1670              TRAP    #15                     ; READ THE DATA
+00001E0A  343C 003F               1671              MOVE.W  #GRDWIDTH-1,D2
+00001E0E  1019                    1672  .COPY       MOVE.B  (A1)+,D0                ; PICK ONE LOADED CHARACTER                  
+00001E10                          1673              ; UNTIL MIDDLE ONLY
+00001E10  B83C 0020               1674              CMP.B   #GRDWIDTH/2, D4         ; MIDDLE OF MATRIX
+00001E14  6C00 0046               1675              BGE     .SKIP1
+00001E18  5204                    1676              ADDQ.B  #1, D4
+00001E1A  0400 0030               1677              SUB.B   #'0',D0                 ; CONVERT FROM ASCII TO NUMBER
+00001E1E  10C0                    1678              MOVE.B  D0,(A0)+                ; STORE DATA
+00001E20  5289                    1679  .SKIP2      ADDQ.L  #1,A1                   ; SKIP THE COMMA
+00001E22  51CA FFEA               1680              DBRA.W  D2,.COPY
+00001E26  51CB FFD4               1681              DBRA.W  D3,.LOOP
+00001E2A  103C 0038               1682              MOVE.B  #56,D0                  ; CLOSE FILE
+00001E2E  4E4F                    1683              TRAP    #15
+00001E30  DFFC 00000200           1684  .END        ADD.L   #512,A7                 ; RESTORE STACK
+00001E36  4CDF 4F1F               1685              MOVEM.L (A7)+, D0-D4/A0-A3/A6
+00001E3A  4E75                    1686              RTS
+00001E3C= 53 45 4C 45 43 54 ...   1687  .MSG        DC.B    'SELECT A CSV FILE TO LOAD',0
+00001E56= 2A 2E 43 53 56 00       1688  .FILTER     DC.B    '*.CSV',0
+00001E5C                          1689              DS.W    0
+00001E5C  1018                    1690  .SKIP1      MOVE.B  (A0)+, D0
+00001E5E  5204                    1691              ADDQ.B  #1, D4
+00001E60  B83C 0040               1692              CMP.B   #GRDWIDTH, D4
+00001E64  6600 0004               1693              BNE     .NORESET
+00001E68  4204                    1694              CLR.B   D4
+00001E6A  60B4                    1695  .NORESET    BRA     .SKIP2
+00001E6C                          1696  
+00001E6C                          1697  ; -----------------------------------------------------------------------------
+00001E6C                          1698  GRDLRGT
+00001E6C                          1699  ; LOADS THE RIGHT PART OF THE GRID FROM A CSV FORMATTED FILE
+00001E6C                          1700  ; INPUT    : NONE
+00001E6C                          1701  ; OUTPUT   : NONE
+00001E6C                          1702  ; MODIFIES : NONE
+00001E6C                          1703  ; NOTE     : THE LOCAL BUFFER SIZE MUST BE MAX(512,2*GRDWIDTH+1). PLEASE CHANGE
+00001E6C                          1704  ;            IT ACCORDINGLY IF GRDWIDTH*2+1 IS LARGER THAN 512.
+00001E6C                          1705  ; NOTE     : ALL THE ACTIVE CELLS ARE STORED AS PLAYER 2 INDEPENDLY OF THEIR
+00001E6C                          1706  ;            ACTUAL VALUE.
+00001E6C                          1707  ; -----------------------------------------------------------------------------
+00001E6C                          1708  
+00001E6C                          1709  ; TODO : PLACE YOUR CODE HERE
+00001E6C  48E7 F8F2               1710              MOVEM.L D0-D4/A0-A3/A6, -(A7)
+00001E70  4284                    1711              CLR.L   D4                      ; COUNTER
+00001E72  103C 0032               1712              MOVE.B  #50,D0                  ; CLOSE ALL FILES (RECOMMENDED)
+00001E76  4E4F                    1713              TRAP    #15
+00001E78  9FFC 00000200           1714              SUB.L   #512,A7                 ; ROW BUFFER IN LOCAL MEMORY
+00001E7E  103C 003A               1715              MOVE.B  #58,D0                  ; SHOW FILE DIALOG TASK
+00001E82  4281                    1716              CLR.L   D1                      ; DISPLAY LOAD DIALOG
+00001E84  43F9 00001F02           1717              LEA     .MSG,A1                 ; STANDARD MESSAGE
+00001E8A  45F9 00001F1C           1718              LEA     .FILTER,A2              ; NO FILTER
+00001E90  264F                    1719              MOVE.L  A7,A3                   ; FILE NAME BUFFER
+00001E92  4253                    1720              CLR.W   (A3)                    ; ENSURE THERE IS NO STRING
+00001E94  4E4F                    1721              TRAP    #15
+00001E96  4A01                    1722              TST.B   D1
+00001E98  6700 005C               1723              BEQ     .END                    ; IF CANCELLED, DO NOTHING
+00001E9C  224B                    1724              MOVE.L  A3,A1                   ; PLACE THE FILENAME INTO A1
+00001E9E  103C 0033               1725              MOVE.B  #51,D0                  ; OPEN EXISTING FILE
+00001EA2  4E4F                    1726              TRAP    #15
+00001EA4  4A40                    1727              TST.W   D0                      ; CHECK ERRORS
+00001EA6  6600 004E               1728              BNE     .END                    ; IF ERRORS, DO NOTHING MORE
+00001EAA  2C4F                    1729              MOVE.L  A7,A6                   ; PUT A6 INTO START OF BUFFER
+00001EAC  224F                    1730              MOVE.L  A7,A1                   ; PUT A1 INTO START OF BUFFER
+00001EAE  2079 000022C6           1731              MOVE.L  (GRDDST), A0            ; POINTER TO STORE PROCESS DATA
+00001EB4  363C 001F               1732              MOVE.W  #GRDHEIGH-1,D3
+00001EB8  224E                    1733  .LOOP       MOVE.L  A6,A1
+00001EBA  103C 0035               1734              MOVE.B  #53,D0                  ; READ DATA TASK NUMBER
+00001EBE  243C 00000081           1735              MOVE.L  #GRDWIDTH*2+1,D2        ; NUMBER OF BYTES TO READ
+00001EC4  4E4F                    1736              TRAP    #15                     ; READ THE DATA
+00001EC6  343C 003F               1737              MOVE.W  #GRDWIDTH-1,D2
+00001ECA  1019                    1738  .COPY       MOVE.B  (A1)+,D0                ; PICK ONE LOADED CHARACTER
+00001ECC                          1739              ; FROM MIDDLE TO END ONLY
+00001ECC  B83C 0020               1740              CMP.B   #GRDWIDTH/2, D4         ; MIDDLE OF MATRIX
+00001ED0  6D00 0050               1741              BLT     .SKIP1
+00001ED4  5204                    1742              ADDQ.B  #1, D4
+00001ED6  B83C 0040               1743              CMP.B   #GRDWIDTH, D4
+00001EDA  6600 0004               1744              BNE     .NORESET
+00001EDE  4204                    1745              CLR.B   D4
+00001EE0  0400 0030               1746  .NORESET    SUB.B   #'0',D0                 ; CONVERT FROM ASCII TO NUMBER
+00001EE4  10C0                    1747              MOVE.B  D0,(A0)+                ; STORE DATA
+00001EE6  5289                    1748  .SKIP2      ADDQ.L  #1,A1                   ; SKIP THE COMMA
+00001EE8  51CA FFE0               1749              DBRA.W  D2,.COPY
+00001EEC  51CB FFCA               1750              DBRA.W  D3,.LOOP
+00001EF0  103C 0038               1751              MOVE.B  #56,D0                  ; CLOSE FILE
+00001EF4  4E4F                    1752              TRAP    #15
+00001EF6  DFFC 00000200           1753  .END        ADD.L   #512,A7                 ; RESTORE STACK
+00001EFC  4CDF 4F1F               1754              MOVEM.L (A7)+, D0-D4/A0-A3/A6
+00001F00  4E75                    1755              RTS
+00001F02= 53 45 4C 45 43 54 ...   1756  .MSG        DC.B    'SELECT A CSV FILE TO LOAD',0
+00001F1C= 2A 2E 43 53 56 00       1757  .FILTER     DC.B    '*.CSV',0
+00001F22                          1758              DS.W    0
+00001F22  1018                    1759  .SKIP1      MOVE.B  (A0)+, D0
+00001F24  5204                    1760              ADDQ.B  #1, D4
+00001F26  60BE                    1761              BRA     .SKIP2
+00001F28                          1762  
+00001F28                          1763  
+00001F28                          1764  
+00001F28                          1765  
+00001F28                          1766  
+00001F28                          1767  
+00001F28                          1768  
+00001F28                          1769  
+00001F28                          1770  
+00001F28                          1771  
+00001F28                          1772  
+00001F28                          1773  ; -----------------------------------------------------------------------------
+00001F28                          1774  GRDPLOT
+00001F28                          1775  ; PLOTS THE GRID
+00001F28                          1776  ; INPUT    : NONE
+00001F28                          1777  ; OUTPUT   : NONE
+00001F28                          1778  ; MODIFIES : NONE
+00001F28                          1779  ; -----------------------------------------------------------------------------
+00001F28                          1780  ; TODO : PLACE YOUR CODE HERE
+00001F28  48E7 FE80               1781              MOVEM.L D0-D6/A0, -(A7)
+00001F2C  4279 000032CA           1782              CLR.W   GRDNPLR1
+00001F32  4279 000032CC           1783              CLR.W   GRDNPLR2
+00001F38  4285                    1784              CLR.L   D5
+00001F3A  4286                    1785              CLR.L   D6
+00001F3C  103C 005D               1786              MOVE.B  #93, D0
+00001F40  123C 0000               1787              MOVE.B  #0, D1
+00001F44  4E4F                    1788              TRAP    #15
+00001F46  103C 0050               1789              MOVE.B  #80, D0
+00001F4A  223C 00005500           1790              MOVE.L  #CLRDKGRN,D1
+00001F50  4E4F                    1791              TRAP    #15
+00001F52  103C 0051               1792              MOVE.B  #81, D0
+00001F56  7200                    1793              MOVE.L  #CLRBLACK,D1
+00001F58  4E4F                    1794              TRAP    #15
+00001F5A  2079 000022C6           1795              MOVE.L  (GRDDST), A0
+00001F60  343C 009E               1796              MOVE.W  #GRDYOFF, D2            ; YINITIAL
+00001F64  323C 0010               1797              MOVE.W  #GRDXOFF, D1            ; XINITIAL
+00001F68  3601                    1798              MOVE.W  D1, D3
+00001F6A  3802                    1799              MOVE.W  D2, D4
+00001F6C  0643 000C               1800              ADD.W   #GRDSZCEL, D3
+00001F70  0644 000C               1801              ADD.W   #GRDSZCEL, D4
+00001F74  3A3C 001F               1802              MOVE.W  #GRDHEIGH-1, D5         ; D3: NUMBER OF ROWS - 1
+00001F78  3C3C 003F               1803  .LOOPY      MOVE.W  #GRDWIDTH-1, D6         ; D2: NUMBER OF COLUMNS - 1
+00001F7C  1018                    1804  .LOOP       MOVE.B  (A0)+, D0               ; GET VALOR TO PLOT
+00001F7E  48E7 C000               1805              MOVEM.L D0-D1, -(A7)            ; STORE REGISTERS, WE NEED THEM
+00001F82  B03C 0001               1806              CMP.B   #1, D0                  ; CHECK IF PLR1 CELL
+00001F86  6700 010E               1807              BEQ     .PNTP1                  
+00001F8A  B03C 0002               1808              CMP.B   #2, D0                  ; CHECK IF PLR2 CELL
+00001F8E  6700 0116               1809              BEQ     .PNTP2
+00001F92  7200                    1810              MOVE.L  #CLRBLACK, D1           ; ELSE SET BLACK
+00001F94  103C 0051               1811  .RESTORE    MOVE.B  #81, D0                 ; PREPARE FILL COLOR
+00001F98  4E4F                    1812              TRAP    #15                     ; SET IT
+00001F9A  4CDF 0003               1813              MOVEM.L (A7)+, D0-D1            ; RESTORE VALUES
+00001F9E  103C 0057               1814              MOVE.B  #87, D0                 ; PREPARE CELL
+00001FA2  4E4F                    1815              TRAP    #15                     ; PLOT IT
+00001FA4  0641 000C               1816              ADD.W   #GRDSZCEL, D1           ; ADD FOR NEXT CELL IN ROW
+00001FA8  0643 000C               1817              ADD.W   #GRDSZCEL, D3           
+00001FAC  51CE FFCE               1818              DBRA.W  D6, .LOOP               ; NEXT CELL
+00001FB0  0642 000C               1819              ADD.W   #GRDSZCEL, D2           ; ADD FOR NEXT ROW
+00001FB4  0644 000C               1820              ADD.W   #GRDSZCEL, D4
+00001FB8  323C 0010               1821              MOVE.W  #GRDXOFF, D1            ; RESET X
+00001FBC  3601                    1822              MOVE.W  D1, D3                  
+00001FBE  0643 000C               1823              ADD.W   #GRDSZCEL, D3
+00001FC2  51CD FFB4               1824              DBRA.W  D5,.LOOPY               ; NEXT ROW
+00001FC6                          1825              ; PRINT P1 SCORE NUMBER
+00001FC6  103C 0051               1826              MOVE.B  #81, D0
+00001FCA  223C 00FF0000           1827              MOVE.L  #GRDCOLP1, D1
+00001FD0  4E4F                    1828              TRAP    #15
+00001FD2  103C 000B               1829              MOVE.B  #11, D0                 ; SET POSITION
+00001FD6  123C 0002               1830              MOVE.B  #GRDSCP1X, D1         ; SET COL NR
+00001FDA  E059                    1831              ROR.W   #8, D1
+00001FDC  123C 0009               1832              MOVE.B  #GRDSCP1Y, D1           ; SET ROW NR
+00001FE0  4E4F                    1833              TRAP    #15
+00001FE2  103C 0003               1834              MOVE.B  #3, D0
+00001FE6  4281                    1835              CLR.L   D1                      ; EVITAM NUMEROS ERRONIS
+00001FE8  3239 000032CA           1836              MOVE.W  GRDNPLR1, D1            ; P1 SCORE
+00001FEE  4E4F                    1837              TRAP    #15
+00001FF0                          1838              ; PRINT OR NOT AN "*"
+00001FF0  3439 000032CA           1839              MOVE.W  GRDNPLR1, D2            ; STORE IN D2 PLR1
+00001FF6  3639 000032CC           1840              MOVE.W  GRDNPLR2, D3            ; SOTRE IN D3 PLR2
+00001FFC  B443                    1841              CMP.W   D3, D2                  ; CHECK PLR1 SCORE
+00001FFE  6D00 001C               1842              BLT     .PL2SCR
+00002002  103C 000B               1843              MOVE.B  #11, D0
+00002006  123C 0002               1844              MOVE.B  #GRDSCP1X, D1           ; SET COL NR
+0000200A  E059                    1845              ROR.W   #8, D1
+0000200C  123C 0008               1846              MOVE.B  #GRDSCP1Y-1, D1         ; SET ROW NR
+00002010  4E4F                    1847              TRAP    #15
+00002012  103C 0006               1848              MOVE.B  #6, D0
+00002016  123C 002A               1849              MOVE.B  #$2A, D1
+0000201A  4E4F                    1850              TRAP    #15
+0000201C                          1851              ; PRINT P2 SCORE NUMBER
+0000201C  103C 0051               1852  .PL2SCR     MOVE.B  #81, D0
+00002020  223C 000000FF           1853              MOVE.L  #GRDCOLP2, D1
+00002026  4E4F                    1854              TRAP    #15
+00002028  103C 000B               1855              MOVE.B  #11, D0                 ; SET POSITION
+0000202C  123C 005E               1856              MOVE.B  #GRDSCP2X, D1           ; SET COL NR
+00002030  E059                    1857              ROR.W   #8, D1
+00002032  123C 0009               1858              MOVE.B  #GRDSCP2Y, D1           ; SET ROW NR
+00002036  4E4F                    1859              TRAP    #15
+00002038  103C 0003               1860              MOVE.B  #3, D0
+0000203C  4281                    1861              CLR.L   D1                      ; EVITAM NUMEROS ERRONIS
+0000203E  3239 000032CC           1862              MOVE.W  GRDNPLR2, D1            ; P2 SCORE
+00002044  4E4F                    1863              TRAP    #15
+00002046                          1864              ; PRINT "*" OR NOT FOR PLR2, D2 AND D3 STILL VALID
+00002046  B642                    1865              CMP.W   D2, D3                  ; CHECK PLR2 SCORE
+00002048  6D00 001C               1866              BLT     .GENSCR
+0000204C  103C 000B               1867              MOVE.B  #11, D0
+00002050  123C 005E               1868              MOVE.B  #GRDSCP2X, D1           ; SET COL NR
+00002054  E059                    1869              ROR.W   #8, D1
+00002056  123C 0008               1870              MOVE.B  #GRDSCP2Y-1, D1         ; SET ROW NR
+0000205A  4E4F                    1871              TRAP    #15
+0000205C  103C 0006               1872              MOVE.B  #6, D0
+00002060  123C 002A               1873              MOVE.B  #$2A, D1
+00002064  4E4F                    1874              TRAP    #15
+00002066                          1875              ; PRINT GENERATION NUMBER
+00002066  103C 0051               1876  .GENSCR     MOVE.B  #81, D0
+0000206A  223C 0000AA00           1877              MOVE.L  #CLRLTGRN, D1
+00002070  4E4F                    1878              TRAP    #15
+00002072  103C 000B               1879              MOVE.B  #11, D0                 ; SET POSITION
+00002076  123C 0030               1880              MOVE.B  #GRDSCNGX, D1           ; SET COL NR
+0000207A  E059                    1881              ROR.W   #8, D1
+0000207C  123C 0009               1882              MOVE.B  #GRDSCNGY, D1           ; SET ROW NR
+00002080  4E4F                    1883              TRAP    #15
+00002082  103C 0003               1884              MOVE.B  #3, D0
+00002086  4281                    1885              CLR.L   D1                      ; EVITAM NUMEROS ERRONIS
+00002088  3239 000032CE           1886              MOVE.W  GRDNGEN, D1             ; P2 SCORE
+0000208E  4E4F                    1887              TRAP    #15
+00002090                          1888              ; CHECK WHO IS WINNING
+00002090  4CDF 017F               1889              MOVEM.L (A7)+, D0-D6/A0         ; RESTORE REGISTERS
+00002094  4E75                    1890              RTS                             
+00002096  223C 00FF0000           1891  .PNTP1      MOVE.L  #GRDCOLP1, D1           ; SET PLR1 COLOR
+0000209C  5279 000032CA           1892              ADDQ.W  #1, GRDNPLR1
+000020A2  6000 FEF0               1893              BRA     .RESTORE
+000020A6  223C 000000FF           1894  .PNTP2      MOVE.L  #GRDCOLP2, D1           ; SET PLR2 COLOR
+000020AC  5279 000032CC           1895              ADDQ.W  #1, GRDNPLR2
+000020B2  6000 FEE0               1896              BRA     .RESTORE
+000020B6                          1897  
+000020B6                          1898  
+000020B6                          1899  
+000020B6                          1900  
+000020B6                          1901  
+000020B6                          1902  
+000020B6                          1903  
+000020B6                          1904  
+000020B6                          1905  
+000020B6                          1906  
+000020B6                          1907  
+000020B6                          1908  
+000020B6                          1909  
+000020B6                          1910  
+000020B6                          1911  
+000020B6                          1912  
+000020B6                          1913  
+000020B6                          1914  -------------------- end include --------------------
+000020B6                          1915              INCLUDE "GOL.X68"               ; GAME OF LIFE APPLICATION
+000020B6                          1916  ; =============================================================================
+000020B6                          1917  ; TITLE    : GAME OF LIFE APPLICATION
+000020B6                          1918  ; AUTHOR   : ANTONI BURGUERA
+000020B6                          1919  ; HISTORY  : 05-JULY-2021 - CREATION
+000020B6                          1920  ; COMMENTS : THIS IS AN APPLICATION. SO, IT IMPLEMENTS INITIALIZATION, UPDATE
+000020B6                          1921  ;            AND PLOT, AS WELL AS SOME AUXILIARY SUBROUTINES.
+000020B6                          1922  ; =============================================================================
+000020B6                          1923  
+000020B6                          1924  ; -----------------------------------------------------------------------------
+000020B6                          1925  GOLINIT
+000020B6                          1926  ; INITIALIZE GAME OF LIFE APPLICATION AS FOLLOWS:
+000020B6                          1927  ; * MAKES THE INTERNAL STATE TO BE "PAUSED/STOPPED"
+000020B6                          1928  ; * INITIALIZES THE USER INTERFACE (BY INITIALIZING THE BUTTONS LIST AND
+000020B6                          1929  ;   ADDING BUTTONS INTO IT)
+000020B6                          1930  ; * INITIALIZES THE GRID.
+000020B6                          1931  ; * INITIALIZES THE UTILITY CODE.
+000020B6                          1932  ; INPUT    : NONE
+000020B6                          1933  ; OUTPUT   : NONE
+000020B6                          1934  ; MODIFIES : NONE
+000020B6                          1935  ; -----------------------------------------------------------------------------
+000020B6  48E7 FFFE               1936              MOVEM.L D0-D7/A0-A6,-(A7)
+000020BA  13FC 0000 000032D0      1937              MOVE.B  #GOLSPAUS,(GOLSTATE)
+000020C2  4EB8 1356               1938              JSR     BTLINIT
+000020C6  41F9 000020EC           1939              LEA     .SDBLIST,A0
+000020CC  2258                    1940  .LOOP       MOVE.L  (A0)+,A1
+000020CE  B3FC FFFFFFFF           1941              CMP.L   #-1,A1
+000020D4  6700 0008               1942              BEQ     .END
+000020D8  4EB8 1376               1943              JSR     BTLADD
+000020DC  60EE                    1944              BRA     .LOOP
+000020DE  4EB8 13F0               1945  .END        JSR     GRDINIT
+000020E2  4EB8 10DC               1946              JSR     UTLINIT
+000020E6  4CDF 7FFF               1947              MOVEM.L (A7)+,D0-D7/A0-A6
+000020EA  4E75                    1948              RTS
+000020EC= 000021C8 000021DA ...   1949  .SDBLIST    DC.L    GOLCLRBT,GOLRUNBT,GOLSTPBT,GOLSTEBT,GOLLLFBT,GOLLRTBT
+00002104= 0000223C 00002252 ...   1950              DC.L    GOLLOABT,GOLSAVBT,-1
+00002110                          1951  
+00002110                          1952  ; -----------------------------------------------------------------------------
+00002110                          1953  GOLUPD
+00002110                          1954  ; UPDATE GAME OF LIFE APPLICATION AS FOLLOWS:
+00002110                          1955  ; * UPDATES THE BUTTON LIST
+00002110                          1956  ; * EXECUTES CODE DEPENDING ON THE CURRENT APPLICATION STATE.
+00002110                          1957  ; INPUT    : NONE
+00002110                          1958  ; OUTPUT   : NONE
+00002110                          1959  ; MODIFIES : NONE
+00002110                          1960  ; -----------------------------------------------------------------------------
+00002110  48E7 C0C0               1961              MOVEM.L A0-A1/D0-D1,-(A7)
+00002114  4EB8 13A0               1962              JSR     BTLUPD
+00002118  41F9 00002134           1963              LEA     .JMPTBL,A0
+0000211E  4280                    1964              CLR.L   D0
+00002120  1039 000032D0           1965              MOVE.B  (GOLSTATE),D0
+00002126  E508                    1966              LSL.B   #2,D0
+00002128  2070 0000               1967              MOVE.L  (A0,D0),A0
+0000212C  4E90                    1968              JSR     (A0)
+0000212E  4CDF 0303               1969              MOVEM.L (A7)+,A0-A1/D0-D1
+00002132  4E75                    1970              RTS
+00002134= 00001430 00002144       1971  .JMPTBL     DC.L    GRDMUPD,GOLDORUN
+0000213C                          1972  
+0000213C                          1973  ; -----------------------------------------------------------------------------
+0000213C                          1974  GOLPLOT
+0000213C                          1975  ; PLOTS THE APPLICATION BY CALLING BTLPLOT AND GRDPLOT
+0000213C                          1976  ; INPUT    : NONE
+0000213C                          1977  ; OUTPUT   : NONE
+0000213C                          1978  ; MODIFIES : NONE
+0000213C                          1979  ; -----------------------------------------------------------------------------
+0000213C  4EB8 13C8               1980              JSR     BTLPLOT
+00002140  4EF8 1F28               1981              JMP     GRDPLOT
+00002144                          1982  
+00002144                          1983  ; -----------------------------------------------------------------------------
+00002144                          1984  GOLDORUN
+00002144                          1985  ; EXECUTES THE RUN STATE. IT ALSO CHECKS IF THE MAXIMUM NUMBER OF GENERATIONS
+00002144                          1986  ; IS REACHED AND, IF SO, ANNOUNCES THE WINNER.
+00002144                          1987  ; INPUT    : NONE
+00002144                          1988  ; OUTPUT   : NONE
+00002144                          1989  ; MODIFIES : NONE
+00002144                          1990  ; -----------------------------------------------------------------------------
+00002144  48E7 8040               1991              MOVEM.L D0/A1,-(A7)
+00002148  0C79 00FA 000032CE      1992              CMP.W   #GOLMAXGN,(GRDNGEN)
+00002150  6D00 0034               1993              BLT     .DOIT
+00002154  43F9 000021A6           1994              LEA     .TIE,A1
+0000215A  3039 000032CA           1995              MOVE.W  (GRDNPLR1),D0
+00002160  B079 000032CC           1996              CMP.W   (GRDNPLR2),D0
+00002166  6700 0012               1997              BEQ     .PLAYSOUND
+0000216A  43F9 00002190           1998              LEA     .P1WINS,A1
+00002170  6E00 0008               1999              BGT     .PLAYSOUND
+00002174  43F9 0000219B           2000              LEA     .P2WINS,A1
+0000217A  103C 0046               2001  .PLAYSOUND  MOVE.B  #70,D0
+0000217E  4E4F                    2002              TRAP    #15
+00002180  4EB9 000021BE           2003  .NOSOUND    JSR     GOLTOPAU
+00002186  4EB8 14C2               2004  .DOIT       JSR     GRDRUPD
+0000218A  4CDF 0201               2005              MOVEM.L (A7)+,D0/A1
+0000218E  4E75                    2006              RTS
+00002190= 50 31 57 49 4E 53 ...   2007  .P1WINS     DC.B    'P1WINS.WAV',0
+0000219B= 50 32 57 49 4E 53 ...   2008  .P2WINS     DC.B    'P2WINS.WAV',0
+000021A6= 54 49 45 2E 57 41 ...   2009  .TIE        DC.B    'TIE.WAV',0
+000021AE                          2010              DS.W    0
+000021AE                          2011  
+000021AE                          2012  ; -----------------------------------------------------------------------------
+000021AE                          2013  GOLTORUN
+000021AE                          2014  ; SWITCHES TO RUN STATE
+000021AE                          2015  ; INPUT    : NONE
+000021AE                          2016  ; OUTPUT   : NONE
+000021AE                          2017  ; MODIFIES : NONE
+000021AE                          2018  ; -----------------------------------------------------------------------------
+000021AE  4279 000032CE           2019              CLR.W   (GRDNGEN)               ; CLEAR GENERATIONS COUNT
+000021B4  13FC 0001 000032D0      2020              MOVE.B  #GOLSEXEC,(GOLSTATE)
+000021BC  4E75                    2021              RTS
+000021BE                          2022  
+000021BE                          2023  ; -----------------------------------------------------------------------------
+000021BE                          2024  GOLTOPAU
+000021BE                          2025  ; SWITCHES TO PAUSE STATE
+000021BE                          2026  ; INPUT    : NONE
+000021BE                          2027  ; OUTPUT   : NONE
+000021BE                          2028  ; MODIFIES : NONE
+000021BE                          2029  ; -----------------------------------------------------------------------------
+000021BE  13FC 0000 000032D0      2030              MOVE.B  #GOLSPAUS,(GOLSTATE)
+000021C6  4E75                    2031              RTS
+000021C8                          2032  
+000021C8                          2033  ; --- STATIC DATA -------------------------------------------------------------
+000021C8                          2034  
+000021C8                          2035  ; CLEAR BUTTON SDB
+000021C8                          2036  
+000021C8= 000A                    2037  GOLCLRBT    DC.W    BTLVEMRG                ; YTOP
+000021CA= 000A                    2038              DC.W    0*(SCRWIDTH/4)+BTLHOMRG ; XLEFT
+000021CC= 0028                    2039              DC.W    BTLVERSZ                ; HEIGHT
+000021CE= 00B4                    2040              DC.W    SCRWIDTH/4-2*BTLHOMRG   ; WIDTH
+000021D0                          2041  ; TODO: PLACE THE CALLBACK HERE
+000021D0= 000020B6                2042              DC.L    GOLINIT                 ;CALLBACK
+000021D4= 43 4C 45 41 52 00       2043              DC.B    'CLEAR',0               ; TEXT
+000021DA                          2044              DS.W    0
+000021DA                          2045  
+000021DA                          2046  ; RUN BUTTON SDB
+000021DA                          2047  
+000021DA= 000A                    2048  GOLRUNBT    DC.W    BTLVEMRG                ; YTOP
+000021DC= 00D2                    2049              DC.W    1*(SCRWIDTH/4)+BTLHOMRG ; XLEFT
+000021DE= 0028                    2050              DC.W    BTLVERSZ                ; HEIGHT
+000021E0= 00B4                    2051              DC.W    SCRWIDTH/4-2*BTLHOMRG   ; WIDTH
+000021E2                          2052  ; TODO: PLACE THE CALLBACK HERE
+000021E2= 000021AE                2053              DC.L    GOLTORUN                ;CALLBACK
+000021E6= 52 55 4E 00             2054              DC.B    'RUN',0                 ; TEXT
+000021EA                          2055              DS.W    0
+000021EA                          2056  
+000021EA                          2057  ; STOP BUTTON SDB
+000021EA                          2058  
+000021EA= 000A                    2059  GOLSTPBT    DC.W    BTLVEMRG                ; YTOP
+000021EC= 019A                    2060              DC.W    2*(SCRWIDTH/4)+BTLHOMRG ; XLEFT
+000021EE= 0028                    2061              DC.W    BTLVERSZ                ; HEIGHT
+000021F0= 00B4                    2062              DC.W    SCRWIDTH/4-2*BTLHOMRG   ; WIDTH
+000021F2                          2063  ; TODO: PLACE THE CALLBACK HERE
+000021F2= 000021BE                2064              DC.L    GOLTOPAU                ;CALLBACK
+000021F6= 53 54 4F 50 00          2065              DC.B    'STOP',0                ; TEXT
+000021FC                          2066              DS.W    0
+000021FC                          2067  
+000021FC                          2068  ; STEP BUTTON SDB
+000021FC                          2069  
+000021FC= 000A                    2070  GOLSTEBT    DC.W    BTLVEMRG                ; YTOP
+000021FE= 0262                    2071              DC.W    3*(SCRWIDTH/4)+BTLHOMRG ; XLEFT
+00002200= 0028                    2072              DC.W    BTLVERSZ                ; HEIGHT
+00002202= 00B4                    2073              DC.W    SCRWIDTH/4-2*BTLHOMRG   ; WIDTH
+00002204                          2074  ; TODO: PLACE THE CALLBACK HERE
+00002204= 00002144                2075              DC.L    GOLDORUN                        ;CALLBACK(ONLY 1 CALL)
+00002208= 53 54 45 50 00          2076              DC.B    'STEP',0                ; TEXT
+0000220E                          2077              DS.W    0
+0000220E                          2078  
+0000220E                          2079  ; LOAD LEFT BUTTON SDB
+0000220E                          2080  
+0000220E= 003C                    2081  GOLLLFBT    DC.W    2*BTLVEMRG+BTLVERSZ     ; YTOP
+00002210= 000A                    2082              DC.W    0*(SCRWIDTH/4)+BTLHOMRG ; XLEFT
+00002212= 0028                    2083              DC.W    BTLVERSZ                ; HEIGHT
+00002214= 00B4                    2084              DC.W    SCRWIDTH/4-2*BTLHOMRG   ; WIDTH
+00002216                          2085  ; TODO: PLACE THE CALLBACK HERE
+00002216= 00001DB0                2086              DC.L    GRDLLEFT                 ;CALLBACK
+0000221A= 4C 4F 41 44 20 4C ...   2087              DC.B    'LOAD LEFT',0           ; TEXT
+00002224                          2088              DS.W    0
+00002224                          2089  
+00002224                          2090  ; LOAD RIGHT BUTTON SDB
+00002224                          2091  
+00002224= 003C                    2092  GOLLRTBT    DC.W    2*BTLVEMRG+BTLVERSZ     ; YTOP
+00002226= 00D2                    2093              DC.W    1*(SCRWIDTH/4)+BTLHOMRG ; XLEFT
+00002228= 0028                    2094              DC.W    BTLVERSZ                ; HEIGHT
+0000222A= 00B4                    2095              DC.W    SCRWIDTH/4-2*BTLHOMRG   ; WIDTH
+0000222C                          2096  ; TODO: PLACE THE CALLBACK HERE
+0000222C= 00001E6C                2097              DC.L    GRDLRGT                 ;CALLBACK
+00002230= 4C 4F 41 44 20 52 ...   2098              DC.B    'LOAD RIGHT',0          ; TEXT
+0000223C                          2099              DS.W    0
+0000223C                          2100  
+0000223C                          2101  ; LOAD ALL BUTTON SDB
+0000223C                          2102  
+0000223C= 003C                    2103  GOLLOABT    DC.W    2*BTLVEMRG+BTLVERSZ     ; YTOP
+0000223E= 019A                    2104              DC.W    2*(SCRWIDTH/4)+BTLHOMRG ; XLEFT
+00002240= 0028                    2105              DC.W    BTLVERSZ                ; HEIGHT
+00002242= 00B4                    2106              DC.W    SCRWIDTH/4-2*BTLHOMRG   ; WIDTH
+00002244                          2107  ; TODO: PLACE THE CALLBACK HERE
+00002244= 00001D10                2108              DC.L    GRDLOAD                 ;CALLBACK
+00002248= 4C 4F 41 44 20 41 ...   2109              DC.B    'LOAD ALL',0            ; TEXT
+00002252                          2110              DS.W    0
+00002252                          2111  
+00002252                          2112  ; SAVE BUTTON SDB
+00002252                          2113  
+00002252= 003C                    2114  GOLSAVBT    DC.W    2*BTLVEMRG+BTLVERSZ     ; YTOP
+00002254= 0262                    2115              DC.W    3*(SCRWIDTH/4)+BTLHOMRG ; XLEFT
+00002256= 0028                    2116              DC.W    BTLVERSZ                ; HEIGHT
+00002258= 00B4                    2117              DC.W    SCRWIDTH/4-2*BTLHOMRG   ; WIDTH
+0000225A                          2118  ; TODO: PLACE THE CALLBACK HERE
+0000225A= 00001C64                2119              DC.L    GRDSAVE
+0000225E= 53 41 56 45 00          2120              DC.B    'SAVE',0          ; TEXT
+00002264                          2121              DS.W    0
+00002264                          2122  -------------------- end include --------------------
+00002264                          2123  
+00002264                          2124  ; --- INITIALIZE --------------------------------------------------------------
+00002264                          2125  
+00002264  4EB8 1000               2126  START       JSR     SYSINIT                 ; INITIALIZE SYSTEM CODE
+00002268  4EB8 20B6               2127              JSR     GOLINIT                 ; INITIALIZE GAME OF LIFE
+0000226C                          2128  
+0000226C                          2129  ; --- UPDATE ------------------------------------------------------------------
+0000226C                          2130  
+0000226C  4E41                    2131  .LOOP       TRAP    #MOUTRAP                ; READ MOUSE
+0000226E  4EB8 2110               2132              JSR     GOLUPD                  ; UPDATE APPLICATION
+00002272                          2133  
+00002272                          2134  ; --- PLOT --------------------------------------------------------------------
+00002272                          2135  
+00002272  4EB8 213C               2136              JSR     GOLPLOT                 ; PLOT APPLICATION
+00002276  4E40                    2137              TRAP    #SCRTRAP                ; SHOW GRAPHICS
+00002278  60F2                    2138              BRA     .LOOP
+0000227A  FFFF FFFF               2139              SIMHALT
+0000227E                          2140  
+0000227E                          2141  ; --- VARIABLES ---------------------------------------------------------------
+0000227E                          2142  
+0000227E                          2143              INCLUDE "SYSVAR.X68"            ; SYSTEM VARIABLES
+0000227E                          2144  ; =============================================================================
+0000227E                          2145  ; TITLE    : SYSTEM VARS
+0000227E                          2146  ; AUTHOR   : ANTONI BURGUERA
+0000227E                          2147  ; HISTORY  : 05-JULY-2021 - CREATION
+0000227E                          2148  ; COMMENTS : * ALL THESE VARS ARE USED TO SHARE DATA FROM SYSTEM TO USER. THUS
+0000227E                          2149  ;              THEY MUST NOT BE IN PROTECTED MEMORY.
+0000227E                          2150  ;
+0000227E                          2151  ;            * SINCE SOME SUBROUTINES TAKE ADVANTAGE OF THE ORDER IN WHICH
+0000227E                          2152  ;              THE VARIABLES ARE IN MEMORY, THEIR ORDER SHOULD NOT BE ALTERED.
+0000227E                          2153  ; =============================================================================
+0000227E                          2154  
+0000227E                          2155  ; --- MOUSE RELATED VARIABLES -------------------------------------------------
+0000227E                          2156  
+0000227E                          2157  MOUY        DS.W    1                       ; MOUSE Y COORDINATE
+00002280                          2158  MOUX        DS.W    1                       ; MOUSE X COORDINATE
+00002282                          2159  MOUVAL      DS.B    1                       ; CURRENT MOUSE BUTTON STATUS
+00002283                          2160  MOUEDGE     DS.B    1                       ; RISING EDGES IN MOUVAL
+00002284                          2161              DS.W    0
+00002284                          2162  -------------------- end include --------------------
+00002284                          2163              INCLUDE "VAR.X68"               ; USER VARIABLES
+00002284                          2164  ; =============================================================================
+00002284                          2165  ; TITLE    : USER VARS
+00002284                          2166  ; AUTHOR   : ANTONI BURGUERA
+00002284                          2167  ; HISTORY  : 05-JULY-2021 - CREATION
+00002284                          2168  ; COMMENTS : SEE THE CORRESPONDING FILES (UTIL.X68, BTNLIST.X68, GRID.X68 OR
+00002284                          2169  ;            GOL.X68) TO LEARN ABOUT THE MEANING OF THESE VARIABLES.
+00002284                          2170  ; =============================================================================
+00002284                          2171  
+00002284                          2172  ; --- UTILITY VARS ------------------------------------------------------------
+00002284                          2173  
+00002284                          2174  UTLRNDIX    DS.B    1                       ; RANDOM GENERATOR INDEX
+00002286                          2175              DS.W    0
+00002286                          2176  
+00002286                          2177  ; --- BUTTON LIST -------------------------------------------------------------
+00002286                          2178  
+00002286                          2179  BTLDATA     DS.B    BTLMXVDB*BTNSZVDB       ; BUTTONS VDB STORAGE
+000022C2                          2180              DS.W    0
+000022C2                          2181  
+000022C2                          2182  ; --- GRID --------------------------------------------------------------------
+000022C2                          2183  
+000022C2                          2184  GRDSRC      DS.L    1                       ; SOURCE MATRIX POINTER
+000022C6                          2185  GRDDST      DS.L    1                       ; DESTINATION MATRIX POINTER
+000022CA                          2186  GRDMATR0    DS.B    GRDWIDTH*GRDHEIGH       ; ONE OF THE GRIDS...
+00002ACA                          2187  GRDMATR1    DS.B    GRDWIDTH*GRDHEIGH       ; THE OTHER GRID
+000032CA                          2188  GRDNPLR1    DS.W    1                       ; NUMBER OF PLAYER 1 CELLS
+000032CC                          2189  GRDNPLR2    DS.W    1                       ; NUMBER OF PLAYER 2 CELLS
+000032CE                          2190  GRDNGEN     DS.W    1                       ; NUMOER OF GENERATIONS
+000032D0                          2191  
+000032D0                          2192  ; --- APPLICATION -------------------------------------------------------------
+000032D0                          2193  
+000032D0                          2194  GOLSTATE    DS.B    1                       ; APPLICATION STATE
+000032D2                          2195              DS.W    0
+000032D2                          2196  -------------------- end include --------------------
+000032D2                          2197  
+000032D2                          2198              END    START
+
+No errors detected
+No warnings generated
+
+
+SYMBOL TABLE INFORMATION
+Symbol-name         Value
+-------------------------
+BTLADD              1376
+BTLADD:FINAL        1394
+BTLADD:LOOP         1384
+BTLADD:TROBAT       139A
+BTLCLEAR            1356
+BTLDATA             2286
+BTLHOMRG            A
+BTLINIT             1356
+BTLINIT:LOOP        1364
+BTLMXVDB            A
+BTLPLOT             13C8
+BTLPLOT:FINAL       13EA
+BTLPLOT:LOOP        13D6
+BTLUPD              13A0
+BTLUPD:FINAL        13C2
+BTLUPD:LOOP         13AE
+BTLVEMRG            A
+BTLVERSZ            28
+BTNINIT             1214
+BTNPENCL            5500
+BTNPENWD            4
+BTNPLOT             12B6
+BTNPLOT:DRAW_RECT   130A
+BTNPLOT:NOTINSIDE   1306
+BTNPLOT:NOTPRESSED  12F2
+BTNPLOT:SYSTEM_CALL  1308
+BTNPRSCL            6600
+BTNSELCL            AA00
+BTNSZVDB            6
+BTNUPD              121C
+BTNUPD:CHECKC       127E
+BTNUPD:CLEARC       129C
+BTNUPD:CLRP         127A
+BTNUPD:END          12AC
+BTNUPD:NO           12A4
+BTNUPD:SETC         12A0
+CHRHEIGH            10
+CHRSHHEI            4
+CHRSHWID            3
+CHRWIDTH            8
+CLRBLACK            0
+CLRDKGRN            5500
+CLRLTBLU            FF0000
+CLRLTGRN            AA00
+CLRLTRED            FF
+CLRMDGRN            6600
+CLRWHITE            FFFFFF
+GOLCLRBT            21C8
+GOLDORUN            2144
+GOLDORUN:DOIT       2186
+GOLDORUN:NOSOUND    2180
+GOLDORUN:P1WINS     2190
+GOLDORUN:P2WINS     219B
+GOLDORUN:PLAYSOUND  217A
+GOLDORUN:TIE        21A6
+GOLINIT             20B6
+GOLINIT:END         20DE
+GOLINIT:LOOP        20CC
+GOLINIT:SDBLIST     20EC
+GOLLLFBT            220E
+GOLLOABT            223C
+GOLLRTBT            2224
+GOLMAXGN            FA
+GOLPLOT             213C
+GOLRUNBT            21DA
+GOLSAVBT            2252
+GOLSEXEC            1
+GOLSPAUS            0
+GOLSTATE            32D0
+GOLSTEBT            21FC
+GOLSTPBT            21EA
+GOLTOPAU            21BE
+GOLTORUN            21AE
+GOLUPD              2110
+GOLUPD:JMPTBL       2134
+GRDCOLP1            FF0000
+GRDCOLP2            FF
+GRDDST              22C6
+GRDHEIGH            20
+GRDINIT             13F0
+GRDINIT:LOOP        1424
+GRDLLEFT            1DB0
+GRDLLEFT:COPY       1E0E
+GRDLLEFT:END        1E30
+GRDLLEFT:FILTER     1E56
+GRDLLEFT:LOOP       1DFC
+GRDLLEFT:MSG        1E3C
+GRDLLEFT:NORESET    1E6A
+GRDLLEFT:SKIP1      1E5C
+GRDLLEFT:SKIP2      1E20
+GRDLOAD             1D10
+GRDLOAD:COPY        1D6C
+GRDLOAD:END         1D84
+GRDLOAD:FILTER      1DAA
+GRDLOAD:LOOP        1D5A
+GRDLOAD:MSG         1D90
+GRDLRGT             1E6C
+GRDLRGT:COPY        1ECA
+GRDLRGT:END         1EF6
+GRDLRGT:FILTER      1F1C
+GRDLRGT:LOOP        1EB8
+GRDLRGT:MSG         1F02
+GRDLRGT:NORESET     1EE0
+GRDLRGT:SKIP1       1F22
+GRDLRGT:SKIP2       1EE6
+GRDMATR0            22CA
+GRDMATR1            2ACA
+GRDMSHEI            1F
+GRDMSWID            3F
+GRDMUPD             1430
+GRDMUPD:DELETE      14B6
+GRDMUPD:END         14BC
+GRDMUPD:PLR2        14AC
+GRDNGEN             32CE
+GRDNPLR1            32CA
+GRDNPLR2            32CC
+GRDPLOT             1F28
+GRDPLOT:GENSCR      2066
+GRDPLOT:LOOP        1F7C
+GRDPLOT:LOOPY       1F78
+GRDPLOT:PL2SCR      201C
+GRDPLOT:PNTP1       2096
+GRDPLOT:PNTP2       20A6
+GRDPLOT:RESTORE     1F94
+GRDPXHEI            180
+GRDPXWID            300
+GRDRUPD             14C2
+GRDRUPD:B           1866
+GRDRUPD:BCLR        1A7C
+GRDRUPD:BFC         17B4
+GRDRUPD:BFLR        19C2
+GRDRUPD:BL          187A
+GRDRUPD:BLCLR       1A90
+GRDRUPD:BLCM        1B2A
+GRDRUPD:BLFC        17C8
+GRDRUPD:BLFLR       19D2
+GRDRUPD:BLLCM       1B3E
+GRDRUPD:BLRLC       1922
+GRDRUPD:BR          1852
+GRDRUPD:BRCLR       1A60
+GRDRUPD:BRFC        17A0
+GRDRUPD:BRFLR       19A6
+GRDRUPD:BRLC        190E
+GRDRUPD:BRLCM       1B12
+GRDRUPD:BRRLC       18FA
+GRDRUPD:CHECKP1     1C48
+GRDRUPD:CHECKPL1    1BBE
+GRDRUPD:EMPTY       1C04
+GRDRUPD:ENDFC       168C
+GRDRUPD:ENDFRST     15B0
+GRDRUPD:ENDLAST     1734
+GRDRUPD:ENDUPD      1B70
+GRDRUPD:FIRSTB      1574
+GRDRUPD:FIRSTBL     1588
+GRDRUPD:FIRSTBR     1560
+GRDRUPD:FIRSTL      159C
+GRDRUPD:FIRSTUP     1514
+GRDRUPD:FRB         1644
+GRDRUPD:FRBL        1658
+GRDRUPD:FRBR        1630
+GRDRUPD:FRL         166C
+GRDRUPD:FRR         161A
+GRDRUPD:FRU         15DE
+GRDRUPD:FRUR        15FC
+GRDRUPD:L           188E
+GRDRUPD:LASTB       16F8
+GRDRUPD:LASTBL      170C
+GRDRUPD:LASTBR      16E4
+GRDRUPD:LASTL       1720
+GRDRUPD:LASTR       16D2
+GRDRUPD:LASTRC      18AE
+GRDRUPD:LASTROW     1956
+GRDRUPD:LASTUP      16A0
+GRDRUPD:LASTUR      16B8
+GRDRUPD:LCLR        1AA4
+GRDRUPD:LCM         1AC6
+GRDRUPD:LFC         17DC
+GRDRUPD:LFLR        19E6
+GRDRUPD:LLCM        1B52
+GRDRUPD:LOOPCLR     1A06
+GRDRUPD:LOOPFR      15B8
+GRDRUPD:LOOPROW     17F8
+GRDRUPD:LRLC        1936
+GRDRUPD:NEXT        1C5C
+GRDRUPD:NONG        1C60
+GRDRUPD:NORAND      1C2C
+GRDRUPD:NXTROW      1742
+GRDRUPD:P1B         1876
+GRDRUPD:P1BCLR      1A8C
+GRDRUPD:P1BFC       17C4
+GRDRUPD:P1BFLR      19D0
+GRDRUPD:P1BL        188A
+GRDRUPD:P1BLCLR     1AA0
+GRDRUPD:P1BLCM      1B3A
+GRDRUPD:P1BLFC      17D8
+GRDRUPD:P1BLFLR     19E2
+GRDRUPD:P1BLLCM     1B4E
+GRDRUPD:P1BLRLC     1932
+GRDRUPD:P1BR        1862
+GRDRUPD:P1BRCLR     1A78
+GRDRUPD:P1BRFC      17B0
+GRDRUPD:P1BRFLR     19BE
+GRDRUPD:P1BRLC      191E
+GRDRUPD:P1BRLCM     1B28
+GRDRUPD:P1BRRLC     190A
+GRDRUPD:P1END       1BFC
+GRDRUPD:P1L         189E
+GRDRUPD:P1LCLR      1AB6
+GRDRUPD:P1LFC       17EC
+GRDRUPD:P1LFLR      19F8
+GRDRUPD:P1LLCM      1B64
+GRDRUPD:P1LRLC      1946
+GRDRUPD:P1R         184E
+GRDRUPD:P1RCLR      1A5C
+GRDRUPD:P1RFC       179C
+GRDRUPD:P1RFLR      19A2
+GRDRUPD:P1RLCM      1B10
+GRDRUPD:P1RRLC      18F8
+GRDRUPD:P1U         1826
+GRDRUPD:P1UCLR      1A34
+GRDRUPD:P1UFC       1774
+GRDRUPD:P1UFLR      197A
+GRDRUPD:P1ULCLR     1A20
+GRDRUPD:P1ULCM      1AEA
+GRDRUPD:P1ULFLR     1966
+GRDRUPD:P1ULLCM     1AD6
+GRDRUPD:P1ULRLC     18BE
+GRDRUPD:P1UN        1812
+GRDRUPD:P1UNFC      1760
+GRDRUPD:P1UR        183A
+GRDRUPD:P1URCLR     1A48
+GRDRUPD:P1URFC      1788
+GRDRUPD:P1URFLR     198E
+GRDRUPD:P1URLC      18D2
+GRDRUPD:P1URLCM     1AFE
+GRDRUPD:P1URRLC     18E6
+GRDRUPD:P2END       1BB6
+GRDRUPD:PLR1B       1708
+GRDRUPD:PLR1BF      1584
+GRDRUPD:PLR1BL      171C
+GRDRUPD:PLR1BLF     1598
+GRDRUPD:PLR1BR      16F4
+GRDRUPD:PLR1BRF     1570
+GRDRUPD:PLR1IS0     1BFA
+GRDRUPD:PLR1IS1     1BE6
+GRDRUPD:PLR1IS2     1BDA
+GRDRUPD:PLR1L       1730
+GRDRUPD:PLR1LF      15AC
+GRDRUPD:PLR1R       16E2
+GRDRUPD:PLR1RF      155C
+GRDRUPD:PLR1U       16B6
+GRDRUPD:PLR1UF      152C
+GRDRUPD:PLR1ULF     1510
+GRDRUPD:PLR1ULL     169C
+GRDRUPD:PLR1UR      16D0
+GRDRUPD:PLR1URF     1548
+GRDRUPD:PLR2IS0     1BB4
+GRDRUPD:PLR2IS1     1BA0
+GRDRUPD:PLR2IS2     1B94
+GRDRUPD:PR1BFR      1654
+GRDRUPD:PR1BLFR     1668
+GRDRUPD:PR1BRFR     1640
+GRDRUPD:PR1LFR      167C
+GRDRUPD:PR1RFR      162C
+GRDRUPD:PR1UFR      15F8
+GRDRUPD:PR1ULFR     15DA
+GRDRUPD:PR1URFR     1616
+GRDRUPD:R           183E
+GRDRUPD:RCLR        1A4C
+GRDRUPD:RFC         178C
+GRDRUPD:RFLR        1992
+GRDRUPD:RLCM        1B02
+GRDRUPD:RRLC        18EA
+GRDRUPD:RST1        1530
+GRDRUPD:RST2        154A
+GRDRUPD:RULES       1B76
+GRDRUPD:RULESCLR    1ABA
+GRDRUPD:RULESFC     17F0
+GRDRUPD:RULESFLR    19FC
+GRDRUPD:RULESFR     1680
+GRDRUPD:RULESLCM    1B68
+GRDRUPD:RULESRC     18A2
+GRDRUPD:RULESRLC    194A
+GRDRUPD:U           1816
+GRDRUPD:UCLR        1A24
+GRDRUPD:UFC         1764
+GRDRUPD:UFLR        196A
+GRDRUPD:ULCM        1ADA
+GRDRUPD:UR          182A
+GRDRUPD:URCLR       1A38
+GRDRUPD:URFC        1778
+GRDRUPD:URFLR       197E
+GRDRUPD:URLC        18C2
+GRDRUPD:URLCM       1AEE
+GRDRUPD:URRLC       18D6
+GRDSAVE             1C64
+GRDSAVE:END         1CE4
+GRDSAVE:FILTER      1D0A
+GRDSAVE:LOOP        1CB2
+GRDSAVE:LOOPY       1CAE
+GRDSAVE:MSG         1CF0
+GRDSCNGX            30
+GRDSCNGY            9
+GRDSCP1X            2
+GRDSCP1Y            9
+GRDSCP2X            5E
+GRDSCP2Y            9
+GRDSHHEI            5
+GRDSHWID            6
+GRDSRC              22C2
+GRDSZCEL            C
+GRDVEMRG            6E
+GRDWIDTH            40
+GRDXOFF             10
+GRDYOFF             9E
+MOUBITLF            0
+MOUBITMD            2
+MOUBITRT            1
+MOUEDGE             2283
+MOUINIT             102A
+MOUMSKLF            1
+MOUMSKMD            4
+MOUMSKRT            2
+MOUREAD             1058
+MOUTRAP             1
+MOUVAL              2282
+MOUX                2280
+MOUY                227E
+SCRHEIGH            258
+SCRINIT             108A
+SCRTRAP             0
+SCRUPD              10C2
+SCRWIDTH            320
+START               2264
+START:LOOP          226C
+SYSINIT             1000
+UTLINIT             10DC
+UTLRAND             10F6
+UTLRAND:RANDVEC     1114
+UTLRNDIX            2284
+UTLSTRLN            10E4
+UTLSTRLN:END        10F2
+UTLSTRLN:LOOP       10E8

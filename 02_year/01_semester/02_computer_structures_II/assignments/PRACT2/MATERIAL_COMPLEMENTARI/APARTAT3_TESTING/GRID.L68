@@ -1,0 +1,1029 @@
+00000000 Starting Address
+Assembler used: EASy68K Editor/Assembler v5.16.01
+Created On: 11/01/2022 20:38:41
+
+00000000                             1  ; =============================================================================
+00000000                             2  ; TITLE    : GRID MANAGEMENT
+00000000                             3  ; AUTHOR   : ANTONI BURGUERA
+00000000                             4  ; HISTORY  : 05-JULY-2021 - CREATION
+00000000                             5  ; COMMENTS : * THERE ARE TWO MATRICES (GRDMATR0 AND GRDMATR1) AND TWO POINTERS
+00000000                             6  ;              TO THESE MATRICES (GRDSRC AND GRDDST).
+00000000                             7  ;
+00000000                             8  ;            * THE MATRIX TO BE PLOTTED IS ALWAYS THE ONE POINTED BY GRDDST.
+00000000                             9  ;
+00000000                            10  ;            * THE MATRIX TO BE UPDATED BY THE MOUSE (GRDMUPD) IS ALWAYS THE
+00000000                            11  ;              ONE POINTED BY GRDDST.
+00000000                            12  ;
+00000000                            13  ;            * THE RULES-UPDATE (GRDRUPD) SWITCHES THE POINTERS AND THEN READS
+00000000                            14  ;              THE NEW SOURCE MATRIX (GRDSRC) TO DETERMINE THE NUMBER OF
+00000000                            15  ;              NEIGHBORS. THE RESULTING CELL VALUE IS WRITTEN TO THE DESTINA-
+00000000                            16  ;              TION MATRIX, POINTED BY GRDDST.
+00000000                            17  ; =============================================================================
+00000000                            18  
+00000000                            19  ; -----------------------------------------------------------------------------
+00000000                            20  GRDINIT
+00000000                            21  ; INITIALIZE THE GRID AS FOLLOWS:
+00000000                            22  ; * POINTS THE SOURCE GRID POINTER TO GRDMATR0.
+00000000                            23  ; * POINTS THE DESTINATION GRID POINTER TO GRDMATR1.
+00000000                            24  ; * RESETS THE COUNTERS (GRDNPLR1, GRDNPLR2, GRDNGEN).
+00000000                            25  ; * FILLS THE TWO MATRICES (GRDMATR0 AND GRDMATR1) WITH ZEROS.
+00000000                            26  ; INPUT    : NONE
+00000000                            27  ; OUTPUT   : NONE
+00000000                            28  ; MODIFIES : NONE
+00000000                            29  ; -----------------------------------------------------------------------------
+00000000  48E7 8080                 30              MOVEM.L A0/D0,-(A7)
+Line 31 ERROR: Undefined symbol
+00000004  23FC 004DBD16 005455B8    31              MOVE.L  #GRDMATR0,(GRDSRC)
+Line 32 ERROR: Undefined symbol
+0000000E  23FC 004DBD16 005455B8    32              MOVE.L  #GRDMATR1,(GRDDST)
+Line 33 ERROR: Undefined symbol
+00000018  4279 004DBD16             33              CLR.W   (GRDNPLR1)
+Line 34 ERROR: Undefined symbol
+0000001E  4279 004DBD16             34              CLR.W   (GRDNPLR2)
+Line 35 ERROR: Undefined symbol
+00000024  4279 004DBD16             35              CLR.W   (GRDNGEN)
+Line 36 ERROR: Undefined symbol
+0000002A  41F9 004DBD16             36              LEA     GRDMATR0,A0
+Line 37 ERROR: Invalid syntax
+00000030                            37              MOVE.W  #GRDWIDTH*GRDHEIGH*2-1,D0
+Line 38 ERROR: Symbol value differs between first and second pass
+00000030                            38  .LOOP       CLR.B   (A0)+
+00000030  51C8 0002                 39              DBRA.W  D0,.LOOP
+00000034  4CDF 0101                 40              MOVEM.L (A7)+,A0/D0
+00000038  4E75                      41              RTS
+0000003A                            42  
+0000003A                            43  ; -----------------------------------------------------------------------------
+Line 44 ERROR: Symbol value differs between first and second pass
+0000003A                            44  GRDMUPD
+0000003A                            45  ; GRID UPDATE USING MOUSE. THE INTERFACE IS AS FOLLOWS:
+0000003A                            46  ; * IF MOUSE IS NOT PRESSED OR IS OUTSIDE THE PLOTTED GRID, DOES NOTHING.
+0000003A                            47  ; * IF LEFT MOUSE BUTTON IS PRESSED INSIDE THE GRID:
+0000003A                            48  ;   - A PLAYER 1 (VALUE=1) CELL IS CREATED AT THE MOUSE POSITION IF THE MOUSE
+0000003A                            49  ;     IS ON THE LEFT HALF OF THE GRID.
+0000003A                            50  ;   - A PLAYER 2 (VALUE=2) CELL IS CREATED AT THE MOUSE POSITION IF THE MOUSE
+0000003A                            51  ;     IS ON THE RIGHT HALF OF THE GRID.
+0000003A                            52  ; * IF RIGHT MOUSE BUTTON IS PRESSED INSIDE THE GRID, THE CELL WHERE THE MOUSE
+0000003A                            53  ;   IS IS CLEARED (VALUE=0).
+0000003A                            54  ; INPUT    : NONE
+0000003A                            55  ; OUTPUT   : NONE
+0000003A                            56  ; MODIFIES : NONE
+0000003A                            57  ; -----------------------------------------------------------------------------
+0000003A                            58  
+0000003A                            59  ; TODO : PLACE YOUR CODE HERE
+0000003A                            60  
+0000003A                            61  *REGISTRES UTILITZATS:
+0000003A                            62   *D0: Màscara left/right click,coordsX(columnes)
+0000003A                            63   *D1:
+0000003A                            64   *D2:
+0000003A                            65   *D3:
+0000003A                            66   
+0000003A  48E7 F080                 67              MOVEM.L D0-D3/A0, -(A7)         ;GUARDAM REGISTRES           
+0000003E                            68              
+0000003E                            69  ;-----------------------COMPROVAM SI EL RATOLÍ HA ESTAT PITJAT----------------
+Line 70 ERROR: Invalid syntax
+0000003E                            70              MOVE.B  #MOUMSKLF+MOUMSKRT, D2
+Line 71 ERROR: Undefined symbol
+0000003E  1239 004DBD16             71              MOVE.B  (MOUVAL), D1
+00000044  C202                      72              AND.B   D2, D1                  ;MÀSCARA QUE DETECTA EL RATOLÍ
+00000046  B23C 0000                 73              CMP.B   #0,D1
+0000004A  6700 0082                 74              BEQ     .FINAL                  ;SI NO PITJAT->FINAL
+0000004E                            75              
+0000004E                            76  ;-----------------------COMPROVAM SI EL RATOLÍ ESTÀ DINS LA MATRIU-------------
+Line 77 ERROR: Undefined symbol
+0000004E  0C79 BD16 005455B8        77              CMP     #GRDVEMRG, (MOUY)
+00000056  6D00 0076                 78              BLT     .FINAL                  
+Line 79 ERROR: Undefined symbol
+0000005A  303C BD16                 79              MOVE.W  #GRDVEMRG, D0
+Line 80 ERROR: Undefined symbol
+0000005E  C0FC BD16                 80              MULU    #GRDWIDTH, D0
+Line 81 ERROR: Undefined symbol
+00000062  B079 004DBD16             81              CMP     (MOUY), D0              
+00000068  6F00 0064                 82              BLE     .FINAL
+0000006C                            83  ;-----------------------ACTUALITZAM LA MATRIU----------------------------------
+Line 84 ERROR: Undefined symbol
+0000006C  2079 004DBD16             84              MOVE.L  (GRDDST), A0            ;APUNTAM A LA MATRIU DESTÍ
+00000072                            85  *            LEA     GRDDST,A0
+Line 86 ERROR: Undefined symbol
+00000072  303C BD16                 86              MOVE.W  #GRDWIDTH, D0           ; PUT NR OF COLUMNS IN D0
+Line 87 ERROR: Undefined symbol
+00000076  3639 004DBD16             87              MOVE.W  (MOUY), D3              ; GET MOUSE POSITION
+Line 88 ERROR: Undefined symbol
+0000007C  0443 BD16                 88              SUB.W   #GRDYOFF, D3            ; INITIAL Y
+Line 89 ERROR: Undefined symbol
+00000080  87FC BD16                 89              DIVS.W  #GRDSZCEL, D3           ; GET Y OFFSET                     
+00000084  C0C3                      90              MULU.W  D3, D0
+Line 91 ERROR: Undefined symbol
+00000086  3439 004DBD16             91              MOVE.W  (MOUX), D2              
+Line 92 ERROR: Undefined symbol
+0000008C  0442 BD16                 92              SUB.W   #GRDXOFF, D2            ; INITIAL X
+Line 93 ERROR: Undefined symbol
+00000090  85FC BD16                 93              DIVS.W  #GRDSZCEL, D2           ; GET X OFFSET
+00000094  D042                      94              ADD.W   D2, D0
+Line 95 ERROR: Undefined symbol
+00000096  0801 0016                 95              BTST.L  #MOUMSKLF, D1           ; IS RIGHT CLICK?
+0000009A  6600 002C                 96              BNE     .ESBORRAR
+Line 97 ERROR: Comma expected
+0000009E                            97              CMP.W   #GRDWIDTH/2, D2        ; CHECK IF PLR1 OR PLR2
+0000009E  6C00 001C                 98              BGE     .PLR2
+000000A2  11BC 0001 0000            99              MOVE.B  #1,(A0, D0)
+000000A8  4EF9 000000CE            100              JMP     .FINAL
+000000AE                           101              
+Line 102 ERROR: Symbol value differs between first and second pass
+000000AE                           102  .PLR2       
+000000AE  11BC 0002 0000           103              MOVE.B  #2, (A0, D0)
+000000B4  4EF9 000000CE            104              JMP     .FINAL
+000000BA                           105              
+Line 106 ERROR: Symbol value differs between first and second pass
+000000BA                           106  .ESBORRAR  
+000000BA  11BC 0000 0000           107              MOVE.B  #0, (A0, D0)
+000000C0                           108  ;----------------------------FINAL SUBRUTINA-----------------------------------
+Line 109 ERROR: Symbol value differs between first and second pass
+000000C0                           109  .FINAL      
+000000C0  4CDF 010F                110              MOVEM.L (A7)+, D0-D3/A0         ;RESTAURAM REGISTRES
+000000C4  4E75                     111              RTS
+000000C6                           112  
+000000C6                           113  ; -----------------------------------------------------------------------------
+Line 114 ERROR: Symbol value differs between first and second pass
+000000C6                           114  GRDRUPD
+000000C6                           115  ; UPDATES THE GRID ACCORDING TO 2-PLAYER GAME OF LIFE RULES AS FOLLOWS:
+000000C6                           116  ; * ADDS 1 TO THE NUMBER OF GENERATIONS (GRDNGEN)
+000000C6                           117  ; * SWITCHES THE MATRIX POINTERS (GRDDST AND GRDSRC).
+000000C6                           118  ; * CHECKS THE NEIGHBORS USING THE NEW SOURCE MATRIX (POINTER BY GRDDRC)
+000000C6                           119  ; * THE RESULTS OF APPLYING THE RULES ARE WRITTEN INTO THE NEW DESTINATION
+000000C6                           120  ;   MATRIX (POINTED BY GRDDST).
+000000C6                           121  ; * THE RULES ARE THE FOLLOWING, WHERE P1 AND P2 ARE 1 AND 2 RESPECTIVELY,
+000000C6                           122  ;   DEAD CELLS ARE REPRESENTED BY 0 AND NP1 AND NP2 DENOTE THE NUMBER OF
+000000C6                           123  ;   PLAYER 1 AND PLAYER 2 NEIGHBORS RESPECTIVELY:
+000000C6                           124  ;   + SURVIVAL RULES
+000000C6                           125  ;     - IF CELL IS P1 AND NP1-NP2 IS 2 OR 3 -> NEW VALUE IS P1
+000000C6                           126  ;     - IF CELL IS P1 AND NP1-NP2 IS 1 AND NP1>=2 -> NEW VALUE IS P1
+000000C6                           127  ;     - OTHERWISE -> NEW VALUE IS 0
+000000C6                           128  ;     - IF CELL IS P2 AND NP2-NP1 IS 2 OR 3 -> NEW VALUE IS P2
+000000C6                           129  ;     - IF CELL IS P2 AND NP2-NP1 IS 1 AND NP2>=2 -> NEW VALUE IS P2
+000000C6                           130  ;     - OTHERWISE -> NEW VALUE IS 0
+000000C6                           131  ;   + BIRTH RULES
+000000C6                           132  ;     - THE CELL HAS EXACTLY THREE P1 NEIGHBOURS AND THE NUMBER
+000000C6                           133  ;       OF P2 NEIGHBOURS IS DIFFERENT FROM THREE. IN THIS CASE A
+000000C6                           134  ;       P1 TOKEN IS BORN IN THE CELL.
+000000C6                           135  ;     - THE CELL HAS EXACTLY THREE P2 NEIGHBOURS AND THE NUMBER
+000000C6                           136  ;       OF P1 NEIGHBOURS IS DIFFERENT FROM THREE. IN THIS CASE A
+000000C6                           137  ;       P2 TOKEN IS BORN IN THE CELL.
+000000C6                           138  ;     - THE CELL HAS EXACTLY THREE WHITE AND THREE BLACK NEIGHBOURS.
+000000C6                           139  ;       IN THIS CASE AN UNBIASED COIN DETERMINES WHETHER A WHITE OR
+000000C6                           140  ;       BLACK TOKEN IS BORN IN THE CELL.
+000000C6                           141  ; INPUT    : NONE
+000000C6                           142  ; OUTPUT   : NONE
+000000C6                           143  ; MODIFIES : NONE
+000000C6                           144  ; -----------------------------------------------------------------------------
+000000C6                           145  
+000000C6                           146  ; TODO : PLACE YOUR CODE HERE
+000000C6  48E7 F9F8                147              MOVEM.L D0-D4/D7/A0-A4, -(A7)   ;GUARDAM REGISTRES
+Line 148 ERROR: Undefined symbol
+000000CA  5279 005455C8            148              ADDQ.W  #1,GRDNGEN              ;AUGMENTAM CONTADOR DE GENERACIONS
+000000D0                           149  ;---------------------------INTERCANVIAM PUNTERS DE MATRIU---------------------            
+Line 150 ERROR: Undefined symbol
+000000D0  2079 004DBD16            150              MOVE.L  (GRDSRC), A0
+Line 151 ERROR: Undefined symbol
+000000D6  2279 004DBD16            151              MOVE.L  (GRDDST), A1
+Line 152 ERROR: Undefined symbol
+000000DC  23C8 005455B8            152              MOVE.L  A0, (GRDDST)
+Line 153 ERROR: Undefined symbol
+000000E2  23C9 005455B8            153              MOVE.L  A1, (GRDSRC)
+000000E8                           154              ;DEBUGGER
+000000E8                           155              ;A1->LLEGIR
+Line 156 ERROR: Invalid syntax
+000000E8                           156              MOVE.L  (GRDDST),A0
+000000E8                           157              ;A0->ESCRIURE
+000000E8                           158  ;--------------------------APUNTAM A LES MATRIUS ORIGEN I DESTÍ----------------
+000000E8                           159  *            LEA     GRDSRC,A0               ;A0->MATRIU ORIGEN
+000000E8                           160  *            LEA     GRDDST,A1               ;A1->MATRIU DESTÍ
+000000E8                           161  
+000000E8                           162  ;---------------------------BUCLE DE RECORREGUT--------------------------------
+000000E8                           163  
+000000E8  4240                     164              CLR.W   D0
+000000EA                           165              
+Line 166 ERROR: Symbol value differs between first and second pass
+000000EA                           166  .MAIN_LOOP
+000000EA                           167  
+000000EA  4EF9 00000112            168              JMP     .CHECK_VEINATS          ;COMPROVAM VEINATS
+Line 169 ERROR: Symbol value differs between first and second pass
+000000F0                           169  .RULES
+000000F0  4EF9 0000017E            170              JMP     .NORMES                 ;COMPROVAM NORMES            
+000000F6                           171              
+Line 172 ERROR: Symbol value differs between first and second pass
+000000F6                           172  .SEGUENT            
+000000F6                           173              
+000000F6  5240                     174              ADDQ.W  #1,D0
+Line 175 ERROR: Invalid syntax
+000000F8                           175              CMP.W   #GRDWIDTH*GRDHEIGH,D0
+000000F8  66FE                     176              BNE     .MAIN_LOOP
+000000FA                           177              ;FINAL BUCLE
+000000FA                           178              ; RETURN SUBRUTINE, WE FINISHED
+000000FA                           179              
+000000FA                           180              
+000000FA                           181              
+Line 182 ERROR: Symbol value differs between first and second pass
+000000FA                           182  .ENDUPD     
+000000FA  4CDF 1F9F                183              MOVEM.L (A7)+, D0-D4/D7/A0-A4   
+000000FE  4E75                     184              RTS      
+00000100                           185           
+00000100                           186           
+00000100                           187           
+00000100                           188           
+00000100                           189  ;----------------------------COMPROVAM ELS VEINATS DE LA CASELLA---------------
+00000100                           190  
+00000100                           191  
+Line 192 ERROR: Symbol value differs between first and second pass
+00000100                           192  .CHECK_VEINATS
+00000100  48E7 F000                193              MOVEM.L D0-D3,-(A7)
+00000104                           194              ;OBTENIM FILA I COLUMNES
+00000104  3200                     195              MOVE.W  D0,D1
+00000106  3400                     196              MOVE.W  D0,D2
+Line 197 ERROR: Undefined symbol
+00000108  EC49                     197              LSR.W   #GRDSHWID,D1            ;D1-->FILES(DIVISIÓ ENTERA)
+Line 198 ERROR: Undefined symbol
+0000010A  C47C BD16                198              AND.W   #GRDMSWID,D2            ;D2-->COLUMNES(MÒDUL AMB AND)
+0000010E                           199              
+0000010E                           200              ;RESETEAM CONTADOR VEINATS
+0000010E  4244                     201              CLR.W   D4                      ;RESET NP1
+00000110  4245                     202              CLR.W   D5                      ;RESET NP2
+00000112                           203              
+00000112                           204              ;APUNTAM AL VECTOR DE CASELLES VEINAT
+00000112  45F9 00000276            205              LEA     MOVEMENTX,A2            ;A2->col
+00000118  47F9 00000286            206              LEA     MOVEMENTY,A3            ;A3->row
+0000011E                           207              
+0000011E                           208              ;NOMBRE DE ITERACIONS DINS D3
+0000011E  363C 0008                209              MOVE.W  #NMOVEMENTS,D3
+00000122  5343                     210              SUBQ.W  #1,D3                   ;D3-->CONTADOR
+00000124                           211              
+00000124                           212     ;----------------------------BUCLE RECORREGUT VEINATS-----------------------            
+Line 213 ERROR: Symbol value differs between first and second pass
+00000124                           213  .LOOP
+00000124  48E7 E000                214              MOVEM.L D0-D2,-(A7)             ;GUARDAM POSICIÓ INICIAL(D0,D1,D2)
+00000128  D45A                     215              ADD.W   (A2)+,D2                ;D2->COLUMNA ACTUALITZADA
+Line 216 ERROR: Undefined symbol
+0000012A  C47C BD16                216              AND.W   #GRDMSWID,D2            ;MÒDUL 64->COLUMNA ACTUALITZADA
+0000012E  D25B                     217              ADD.W   (A3)+,D1                ;D3->FILA ACTUALITZADA
+Line 218 ERROR: Undefined symbol
+00000130  C27C BD16                218              AND.W   #GRDMSHEI,D1    
+00000134                           219              
+Line 220 ERROR: Undefined symbol
+00000134  ED49                     220              LSL.W   #GRDSHWID,D1            ;MULTIPLICAM D1 PER 64--->D1:recorregut de files
+00000136  4247                     221              CLR.W   D7
+00000138  DE41                     222              ADD.W   D1,D7                   
+0000013A  DE42                     223              ADD.W   D2,D7                   ;D0--->RECORREGUT TOTAL
+0000013C                           224              
+0000013C  1C31 7000                225              MOVE.B  (A1,D7),D6              ;D6->VALOR DEL VEINAT
+00000140  BC3C 0001                226              CMP.B   #1,D6              
+00000144  6E00 0032                227              BGT     .VEINAT_P2              ;>1--->JUGADOR 2
+00000148  BC3C 0000                228              CMP.B   #0,D6
+0000014C  6700 0016                229              BEQ     .PROXIM                 ;SI ESTA BUIT
+00000150  5244                     230              ADDQ.W  #1,D4                   ;AUGMENTAM CONTADOR NP1
+Line 231 ERROR: Symbol value differs between first and second pass
+00000152                           231  .PROXIM            
+00000152  4206                     232              CLR.B   D6                      RESETEAM VALOR VEINAT GUARDAT
+00000154  4247                     233              CLR.W   D7
+00000156  4CDF 0007                234              MOVEM.L (A7)+,D0-D2             ;RESTAURAM POSICIÓ INICIAL(D0,D1,D2)
+0000015A  51CB FFDA                235              DBRA    D3,.LOOP
+0000015E                           236  
+0000015E                           237    ;----------------------------------------------------------------------------
+0000015E                           238  
+0000015E  4CDF 000F                239              MOVEM.L (A7)+,D0-D3
+00000162  4EF8 00FE                240              JMP     .RULES
+00000166                           241              ;SALTA A COMPROVAR REGLES
+00000166                           242              
+00000166                           243              
+Line 244 ERROR: Symbol value differs between first and second pass
+00000166                           244  .VEINAT_P2
+00000166  5245                     245              ADDQ.W  #1,D5                   ;AUGMENTAM CONTADOR NP2
+00000168  4EF8 0164                246              JMP     .PROXIM
+0000016C                           247              
+0000016C                           248              
+0000016C                           249              
+0000016C                           250              
+0000016C                           251              
+0000016C                           252              
+0000016C                           253  ;**************************** ALL CELLS CHECKED *******************************     
+0000016C                           254           
+Line 255 ERROR: Symbol value differs between first and second pass
+0000016C                           255  .NORMES     ; WE HAVE NP1 IN D0 AND NP2 IN D1
+0000016C  1C31 0000                256              MOVE.B  0(A1,D0), D6             ; GET VALOR
+00000170  BC3C 0002                257              CMP.B   #2, D6                  ; IS PLR2 CELL?
+00000174  6600 0052                258              BNE     .CHECKPL1
+00000178                           259  
+00000178                           260  ;---------------------------------NORMES JUGADOR 2-----------------------------
+00000178  48E7 0C00                261              MOVEM.L D4-D5, -(A7)
+0000017C  2E04                     262              MOVE.L  D4, D7                  ; STORE NP2
+0000017E  9A04                     263              SUB.B   D4, D5                  ; NP2-NP1
+00000180  BA3C 0003                264              CMP.B   #3, D5                  ; IS IT 3?
+00000184  6600 0018                265              BNE     .PLR2IS2
+00000188                           266              ; ALREADY A P2 CELL, WE DO NOTHING
+00000188  6000 0036                267              BRA     .P2END
+Line 268 ERROR: Symbol value differs between first and second pass
+0000018C                           268  .PLR2IS2    
+0000018C  BA3C 0002                269              CMP.B   #2, D5                  ; OR IS IT 2
+00000190  6600 0018                270              BNE     .PLR2IS1
+00000194                           271              ; ALREADY A P2 CELL, WE DO NOTHING 
+00000194  6000 002A                272              BRA     .P2END  
+Line 273 ERROR: Symbol value differs between first and second pass
+00000198                           273  .PLR2IS1    
+00000198  BA3C 0001                274              CMP.B   #1, D5                  ; IF IS 1 
+0000019C  6600 0020                275              BNE     .PLR2IS0                
+000001A0  BE3C 0002                276              CMP.B   #2, D7                  ; NP2 >= 2?
+000001A4  6D00 0018                277              BLT     .PLR2IS0
+000001A8                           278              ; ALREADY A P2 CELL, WE DO NOTHING     
+000001A8  6000 0016                279              BRA     .P2END   
+Line 280 ERROR: Symbol value differs between first and second pass
+000001AC                           280  .PLR2IS0    
+000001AC  4206                     281              CLR.B   D6 
+Line 282 ERROR: Symbol value differs between first and second pass
+000001AE                           282  .P2END      
+000001AE  4CDF 0030                283              MOVEM.L (A7)+, D4-D5
+000001B2  6000 00B4                284              BRA     .NEXT                   ; GO TO NEXT CELL
+000001B6                           285  
+000001B6                           286  ;-------------------------------NORMES JUGADOR 1-------------------------------           
+Line 287 ERROR: Symbol value differs between first and second pass
+000001B6                           287  .CHECKPL1   
+000001B6  BC3C 0001                288              CMP.B   #1, D6
+000001BA  6600 0052                289              BNE     .EMPTY
+000001BE                           290              ; PLR1 RULES
+000001BE  48E7 0D00                291              MOVEM.L D4-D5/D7, -(A7)
+000001C2  2E04                     292              MOVE.L  D4, D7                  ;GUARDAM NP1
+000001C4  9805                     293              SUB.B   D5, D4                  ; NP1-NP2
+000001C6  B83C 0003                294              CMP.B   #3, D4                  ; IS IT 3?
+000001CA  6600 0018                295              BNE     .PLR1IS2
+000001CE                           296              ; ALREADY A P1 CELL, WE DO NOTHING
+000001CE  6000 0036                297              BRA     .P1END
+Line 298 ERROR: Symbol value differs between first and second pass
+000001D2                           298  .PLR1IS2    CMP.B   #2, D4                  ; OR IS IT 2
+000001D2  6600 001C                299              BNE     .PLR1IS1
+000001D6                           300              ; ALREADY A P1 CELL, WE DO NOTHING 
+000001D6  6000 002E                301              BRA     .P1END  
+Line 302 ERROR: Symbol value differs between first and second pass
+000001DA                           302  .PLR1IS1    CMP.B   #1, D7                  ; IF IS 1 
+000001DA  6600 0028                303              BNE     .PLR1IS0                
+000001DE  BE3C 0002                304              CMP.B   #2, D7                  ; NP1>=2?
+000001E2  6D00 0020                305              BLT     .PLR1IS0
+000001E6                           306              ; ALREADY A P1 CELL, WE DO NOTHING     
+000001E6  6000 001E                307              BRA     .P1END   
+Line 308 ERROR: Symbol value differs between first and second pass
+000001EA                           308  .PLR1IS0    
+000001EA  4206                     309              CLR.B   D6 
+Line 310 ERROR: Symbol value differs between first and second pass
+000001EC                           310  .P1END      
+000001EC  4CDF 00B0                311              MOVEM.L (A7)+, D4-D5/D7
+000001F0  6000 0076                312              BRA     .NEXT
+000001F4                           313  ;---------------------------------NORMES CASELLA BUIDA-------------------------
+Line 314 ERROR: Symbol value differs between first and second pass
+000001F4                           314  .EMPTY      
+000001F4  2F05                     315              MOVE.L  D5, -(A7)
+000001F6  8A04                     316              OR.B    D4, D5                  ; SEE IF ANY VALUE IN BOTH
+000001F8  4A05                     317              TST.B   D5
+000001FA  6700 0074                318              BEQ     .NONG                   ; NO NEIGHBOURS
+000001FE  2A1F                     319              MOVE.L  (A7)+, D5
+00000200                           320              
+00000200  48E7 0400                321              MOVEM.L D5, -(A7)               ; SAVE COUNTERS
+00000204  CA04                     322              AND.B   D4, D5                  ; IF D1=3, NP1=NP2
+00000206  BA3C 0003                323              CMP.B   #3, D5
+0000020A  6600 002C                324              BNE     .NORAND                 ; CHECK OTHER POSSIBILITIES
+Line 325 ERROR: Undefined symbol
+0000020E  4EB9 004DBD16            325              JSR     UTLRAND
+00000214  1C01                     326              MOVE.B  D1, D6
+00000216  4CDF 0020                327              MOVEM.L (A7)+, D5
+0000021A                           328              
+0000021A  6000 004C                329              BRA     .NEXT
+Line 330 ERROR: Symbol value differs between first and second pass
+0000021E                           330  .NORAND     
+0000021E  4CDF 0020                331              MOVEM.L (A7)+, D5
+00000222  BA3C 0003                332              CMP.B   #3, D5                  ; HAS PL2 EXACTLY 3 NEIGHBOURS?
+00000226  6600 002C                333              BNE     .CHECKP1                ; IF NOT CHECK PL1
+0000022A  B83C 0003                334              CMP.B   #3, D4                  ; IS NP1 != 3?
+0000022E  6700 0024                335              BEQ     .CHECKP1
+00000232  1C3C 0002                336              MOVE.B  #2, D6                  ; NEW PL2 CELL IS BORN
+00000236  6000 0030                337              BRA     .NEXT
+Line 338 ERROR: Symbol value differs between first and second pass
+0000023A                           338  .CHECKP1    
+0000023A  B83C 0003                339              CMP.B   #3, D4                  ; HAS PL1 EXACTLY 3 NEIGHBOURS?
+0000023E  6600 0028                340              BNE     .NEXT                   ; NO CELL IS BORN
+00000242  BA3C 0003                341              CMP.B   #3, D5                  ; IS NP2 != 3?
+00000246  6700 0020                342              BEQ     .NEXT
+0000024A  1C3C 0001                343              MOVE.B  #1, D6                  ; NEW PL1 CELL IS BORN
+Line 344 ERROR: Symbol value differs between first and second pass
+0000024E                           344  .NEXT       
+0000024E  1186 0000                345              MOVE.B  D6, (A0,D0)             ;ESCRIPTURA MATRIU DESTÍ
+00000252  6000 FEB0                346              BRA     .SEGUENT
+00000256                           347   
+Line 348 ERROR: Symbol value differs between first and second pass
+00000256                           348  .NONG       
+00000256  2A1F                     349              MOVE.L  (A7)+, D5
+00000258  6000 FEAA                350              BRA     .SEGUENT
+0000025C                           351  
+0000025C                           352  
+0000025C                           353  
+0000025C                           354  
+0000025C                           355  
+0000025C                           356  
+0000025C                           357  
+0000025C                           358  
+0000025C                           359  
+0000025C                           360              
+0000025C                           361              
+Line 362 ERROR: Symbol value differs between first and second pass
+0000025C=                          362  MOVEMENTX   DC.W    $FFFF,0,1,$FFFF,1,$FFFF,0,1   ;MOVIMENT PER COLUMNES
+0000025C                           363  
+Line 364 ERROR: Symbol value differs between first and second pass
+0000025C=                          364  MOVEMENTY   DC.W    $FFFF,$FFFF,$FFFF,0,0,1,1,1   ;MOVIMENT PER FILES
+0000025C                           365  
+0000025C  =00000008                366  NMOVEMENTS  EQU    8                      ;NOMBRE DE VEINATS POSSIBLES
+0000025C                           367        
+0000025C                           368  ; -----------------------------------------------------------------------------
+Line 369 ERROR: Symbol value differs between first and second pass
+0000025C                           369  GRDSAVE
+0000025C                           370  ; SAVES THE GRID INTO A FILE IN CSV FORMAT
+0000025C                           371  ; INPUT    : NONE
+0000025C                           372  ; OUTPUT   : NONE
+0000025C                           373  ; MODIFIES : NONE
+0000025C                           374  ; NOTE     : THE LOCAL BUFFER SIZE MUST BE MAX(512,2*GRDWIDTH+1). PLEASE CHANGE
+0000025C                           375  ;            IT ACCORDINGLY IF GRDWIDTH*2+1 IS LARGER THAN 512.
+0000025C                           376  ; -----------------------------------------------------------------------------
+0000025C  48E7 FFFE                377              MOVEM.L D0-D7/A0-A6,-(A7)       ; TO BE OPTIMIZED
+00000260  103C 0032                378              MOVE.B  #50,D0                  ; CLOSE ALL FILES (RECOMMENDED)
+00000264  4E4F                     379              TRAP    #15
+00000266  9FFC 00000200            380              SUB.L   #512,A7                 ; ROW BUFFER IN LOCAL MEMORY
+0000026C  103C 003A                381              MOVE.B  #58,D0                  ; SHOW FILE DIALOG TASK
+00000270  7201                     382              MOVE.L  #1,D1                   ; DISPLAY SAVE DIALOG
+00000272  43F9 00000322            383              LEA     .MSG,A1                 ; STANDARD MESSAGE
+00000278  45F9 0000033C            384              LEA     .FILTER,A2              ; NO FILTER
+0000027E  264F                     385              MOVE.L  A7,A3                   ; FILE NAME BUFFER
+00000280  4253                     386              CLR.W   (A3)                    ; ENSURE THERE IS NO STRING
+00000282  4E4F                     387              TRAP    #15
+00000284  4A01                     388              TST.B   D1
+00000286  6700 008E                389              BEQ     .END                    ; IF CANCELLED, DO NOTHING
+0000028A  224B                     390              MOVE.L  A3,A1                   ; PLACE THE FILENAME INTO A1
+0000028C  103C 0034                391              MOVE.B  #52,D0                  ; CREATE NEW FILE
+00000290  4E4F                     392              TRAP    #15
+00000292  4A40                     393              TST.W   D0                      ; CHECK CREATION ERROR
+00000294  6600 0080                394              BNE     .END                    ; DO NOTHING MORE IF ERROR
+00000298  2C4F                     395              MOVE.L  A7,A6                   ; PUT A6 INTO START OF BUFFER
+0000029A  224F                     396              MOVE.L  A7,A1                   ; PUT A1 INTO START OF BUFFER
+Line 397 ERROR: Undefined symbol
+0000029C  2079 004DBD16            397              MOVE.L  (GRDDST), A0            ; A0: POINTER TO THE DATA TO WRITE
+Line 398 ERROR: Comma expected
+000002A2                           398              MOVE.W  #GRDHEIGH-1,D3          ; D3: NUMBER OF ROWS - 1
+Line 399 ERROR: Symbol value differs between first and second pass
+000002A2                           399  .LOOPY      MOVE.W  #GRDWIDTH-1,D2          ; D2: NUMBER OF COLUMNS - 1
+Line 400 ERROR: Symbol value differs between first and second pass
+000002A2                           400  .LOOP       MOVE.B  #'0',D0                 ; ADD CHAR '0' AND THE CELL VALUE
+000002A2  D018                     401              ADD.B   (A0)+,D0
+000002A4  1CC0                     402              MOVE.B  D0, (A6)+               ; STORE IT IN THE BUFFER
+000002A6  1CFC 002C                403              MOVE.B  #',',(A6)+              ; NOW PUT THE COMMA
+000002AA  51CA 0038                404              DBRA.W  D2,.LOOP
+000002AE  1D7C 000D FFFF           405              MOVE.B  #$0D,-1(A6)             ; STORE CARRIAGE RETURN (REMOVE ',')
+000002B4  1CBC 000A                406              MOVE.B  #$0A,(A6)               ; STORE LINE FEED
+000002B8  103C 0036                407              MOVE.B  #54,D0                  ; WRITE TO FILE TASK NUMBER
+Line 408 ERROR: Invalid syntax
+000002BC                           408              MOVE.L  #GRDWIDTH*2+1,D2        ; NUMBER OF BYTES TO WRITE
+000002BC  4E4F                     409              TRAP    #15                     ; WRITE (A1 IS ALREADY THERE)
+000002BE  2C49                     410              MOVE.L  A1,A6                   ; GO BACK TO THE BUFFER START
+000002C0  51CB 001E                411              DBRA.W  D3,.LOOPY
+000002C4  103C 0038                412              MOVE.B  #56,D0                  ; CLOSE FILE
+000002C8  4E4F                     413              TRAP    #15
+Line 414 ERROR: Symbol value differs between first and second pass
+000002CA                           414  .END        ADD.L   #512,A7                 ; RESTORE STACK
+000002CA  4CDF 7FFF                415              MOVEM.L (A7)+,D0-D7/A0-A6       ; TO BE OPTIMIZED
+000002CE  4E75                     416              RTS
+Line 417 ERROR: Symbol value differs between first and second pass
+000002D0= 53 45 4C 45 43 54 ...    417  .MSG        DC.B    'SELECT A CSV FILE TO SAVE',0
+Line 418 ERROR: Symbol value differs between first and second pass
+000002E9= 2A 2E 43 53 56           418  .FILTER     DC.B    '*.CSV',0
+000002EE                           419              DS.W    0
+000002EE                           420  
+000002EE                           421  ; -----------------------------------------------------------------------------
+Line 422 ERROR: Symbol value differs between first and second pass
+000002EE                           422  GRDLOAD
+000002EE                           423  ; LOADS THE GRID FROM A CSV FORMATTED FILE
+000002EE                           424  ; INPUT    : NONE
+000002EE                           425  ; OUTPUT   : NONE
+000002EE                           426  ; MODIFIES : NONE
+000002EE                           427  ; NOTE     : THE LOCAL BUFFER SIZE MUST BE MAX(512,2*GRDWIDTH+1). PLEASE CHANGE
+000002EE                           428  ;            IT ACCORDINGLY IF GRDWIDTH*2+1 IS LARGER THAN 512.
+000002EE                           429  ; -----------------------------------------------------------------------------
+000002EE  48E7 F8F2                430              MOVEM.L D0-D4/A0-A3/A6,-(A7)    ; TO BE OPTIMIZED
+000002F2  103C 0032                431              MOVE.B  #50,D0                  ; CLOSE ALL FILES (RECOMMENDED)
+000002F6  4E4F                     432              TRAP    #15
+000002F8  9FFC 00000200            433              SUB.L   #512,A7                 ; ROW BUFFER IN LOCAL MEMORY
+000002FE  103C 003A                434              MOVE.B  #58,D0                  ; SHOW FILE DIALOG TASK
+00000302  4281                     435              CLR.L   D1                      ; DISPLAY LOAD DIALOG
+00000304  43F9 000003C2            436              LEA     .MSG,A1                 ; STANDARD MESSAGE
+0000030A  45F9 000003DC            437              LEA     .FILTER,A2              ; NO FILTER
+00000310  264F                     438              MOVE.L  A7,A3                   ; FILE NAME BUFFER
+00000312  4253                     439              CLR.W   (A3)                    ; ENSURE THERE IS NO STRING
+00000314  4E4F                     440              TRAP    #15
+00000316  4A01                     441              TST.B   D1
+00000318  6700 009C                442              BEQ     .END                    ; IF CANCELLED, DO NOTHING
+0000031C  224B                     443              MOVE.L  A3,A1                   ; PLACE THE FILENAME INTO A1
+0000031E  103C 0033                444              MOVE.B  #51,D0                  ; OPEN EXISTING FILE
+00000322  4E4F                     445              TRAP    #15
+00000324  4A40                     446              TST.W   D0                      ; CHECK ERRORS
+00000326  6600 008E                447              BNE     .END                    ; IF ERRORS, DO NOTHING MORE
+0000032A  2C4F                     448              MOVE.L  A7,A6                   ; PUT A6 INTO START OF BUFFER
+0000032C  224F                     449              MOVE.L  A7,A1                   ; PUT A1 INTO START OF BUFFER
+Line 450 ERROR: Undefined symbol
+0000032E  2079 004DBD16            450              MOVE.L  (GRDDST), A0            ; POINTER TO STORE PROCESS. DATA
+Line 451 ERROR: Comma expected
+00000334                           451              MOVE.W  #GRDHEIGH-1,D3
+Line 452 ERROR: Symbol value differs between first and second pass
+00000334                           452  .LOOP       MOVE.L  A6,A1
+00000334  103C 0035                453              MOVE.B  #53,D0                  ; READ DATA TASK NUMBER
+Line 454 ERROR: Invalid syntax
+00000338                           454              MOVE.L  #GRDWIDTH*2+1,D2        ; NUMBER OF BYTES TO READ
+00000338  4E4F                     455              TRAP    #15                     ; READ THE DATA
+Line 456 ERROR: Comma expected
+0000033A                           456              MOVE.W  #GRDWIDTH-1,D2
+Line 457 ERROR: Symbol value differs between first and second pass
+0000033A                           457  .COPY       MOVE.B  (A1)+,D0                ; PICK ONE LOADED CHARACTER
+0000033A  0400 0030                458              SUB.B   #'0',D0                 ; CONVERT FROM ASCII TO NUMBER
+0000033E  10C0                     459              MOVE.B  D0,(A0)+                ; STORE DATA
+00000340  5289                     460              ADDQ.L  #1,A1                   ; SKIP THE COMMA
+00000342  51CA 005A                461              DBRA.W  D2,.COPY
+00000346  51CB 0044                462              DBRA.W  D3,.LOOP
+0000034A  103C 0038                463              MOVE.B  #56,D0                  ; CLOSE FILE
+0000034E  4E4F                     464              TRAP    #15
+Line 465 ERROR: Symbol value differs between first and second pass
+00000350                           465  .END        ADD.L   #512,A7                 ; RESTORE STACK
+00000350  4CDF 4F1F                466              MOVEM.L (A7)+,D0-D4/A0-A3/A6    ; TO BE OPTIMIZED
+00000354  4E75                     467              RTS
+Line 468 ERROR: Symbol value differs between first and second pass
+00000356= 53 45 4C 45 43 54 ...    468  .MSG        DC.B    'SELECT A CSV FILE TO LOAD',0
+Line 469 ERROR: Symbol value differs between first and second pass
+0000036F= 2A 2E 43 53 56           469  .FILTER     DC.B    '*.CSV',0
+00000374                           470              DS.W    0
+00000374                           471  
+00000374                           472  ; -----------------------------------------------------------------------------
+Line 473 ERROR: Symbol value differs between first and second pass
+00000374                           473  GRDLLEFT
+00000374                           474  ; LOADS THE LEFT PART OF THE GRID FROM A CSV FORMATTED FILE
+00000374                           475  ; INPUT    : NONE
+00000374                           476  ; OUTPUT   : NONE
+00000374                           477  ; MODIFIES : NONE
+00000374                           478  ; NOTE     : THE LOCAL BUFFER SIZE MUST BE MAX(512,2*GRDWIDTH+1). PLEASE CHANGE
+00000374                           479  ;            IT ACCORDINGLY IF GRDWIDTH*2+1 IS LARGER THAN 512.
+00000374                           480  ; NOTE     : ALL THE ACTIVE CELLS ARE STORED AS PLAYER 1 INDEPENDLY OF THEIR
+00000374                           481  ;            ACTUAL VALUE.
+00000374                           482  ; -----------------------------------------------------------------------------
+00000374                           483  
+00000374                           484  ; TODO : PLACE YOUR CODE HERE
+00000374  48E7 F8F2                485              MOVEM.L D0-D4/A0-A3/A6, -(A7)
+00000378  4284                     486              CLR.L   D4                      ; COUNTER
+0000037A  103C 0032                487              MOVE.B  #50,D0                  ; CLOSE ALL FILES (RECOMMENDED)
+0000037E  4E4F                     488              TRAP    #15
+00000380  9FFC 00000200            489              SUB.L   #512,A7                 ; ROW BUFFER IN LOCAL MEMORY
+00000386  103C 003A                490              MOVE.B  #58,D0                  ; SHOW FILE DIALOG TASK
+0000038A  4281                     491              CLR.L   D1                      ; DISPLAY LOAD DIALOG
+0000038C  43F9 0000046E            492              LEA     .MSG,A1                 ; STANDARD MESSAGE
+00000392  45F9 00000488            493              LEA     .FILTER,A2              ; NO FILTER
+00000398  264F                     494              MOVE.L  A7,A3                   ; FILE NAME BUFFER
+0000039A  4253                     495              CLR.W   (A3)                    ; ENSURE THERE IS NO STRING
+0000039C  4E4F                     496              TRAP    #15
+0000039E  4A01                     497              TST.B   D1
+000003A0  6700 00C0                498              BEQ     .END                    ; IF CANCELLED, DO NOTHING
+000003A4  224B                     499              MOVE.L  A3,A1                   ; PLACE THE FILENAME INTO A1
+000003A6  103C 0033                500              MOVE.B  #51,D0                  ; OPEN EXISTING FILE
+000003AA  4E4F                     501              TRAP    #15
+000003AC  4A40                     502              TST.W   D0                      ; CHECK ERRORS
+000003AE  6600 00B2                503              BNE     .END                    ; IF ERRORS, DO NOTHING MORE
+000003B2  2C4F                     504              MOVE.L  A7,A6                   ; PUT A6 INTO START OF BUFFER
+000003B4  224F                     505              MOVE.L  A7,A1                   ; PUT A1 INTO START OF BUFFER
+Line 506 ERROR: Undefined symbol
+000003B6  2079 004DBD16            506              MOVE.L  (GRDDST), A0            ; POINTER TO STORE PROCESS DATA
+Line 507 ERROR: Comma expected
+000003BC                           507              MOVE.W  #GRDHEIGH-1,D3
+Line 508 ERROR: Symbol value differs between first and second pass
+000003BC                           508  .LOOP       MOVE.L  A6,A1
+000003BC  103C 0035                509              MOVE.B  #53,D0                  ; READ DATA TASK NUMBER
+Line 510 ERROR: Invalid syntax
+000003C0                           510              MOVE.L  #GRDWIDTH*2+1,D2        ; NUMBER OF BYTES TO READ
+000003C0  4E4F                     511              TRAP    #15                     ; READ THE DATA
+Line 512 ERROR: Comma expected
+000003C2                           512              MOVE.W  #GRDWIDTH-1,D2
+Line 513 ERROR: Symbol value differs between first and second pass
+000003C2                           513  .COPY       MOVE.B  (A1)+,D0                ; PICK ONE LOADED CHARACTER                  
+000003C2                           514              ; NOMÉS FINS LA MEITAT
+Line 515 ERROR: Comma expected
+000003C2                           515              CMP.B   #GRDWIDTH/2, D4         ; MIRAM SI HA ARRIBAT A LA MEITAT
+000003C2  6C00 00CA                516              BGE     .SKIP1
+000003C6  5204                     517              ADDQ.B  #1, D4
+000003C8  0400 0030                518              SUB.B   #'0',D0                 ; CONVERT FROM ASCII TO NUMBER
+000003CC  10C0                     519              MOVE.B  D0,(A0)+                ; STORE DATA
+Line 520 ERROR: Symbol value differs between first and second pass
+000003CE                           520  .SKIP2      ADDQ.L  #1,A1                   ; SKIP THE COMMA
+000003CE  51CA 0070                521              DBRA.W  D2,.COPY
+000003D2  51CB 005A                522              DBRA.W  D3,.LOOP
+000003D6  103C 0038                523              MOVE.B  #56,D0                  ; CLOSE FILE
+000003DA  4E4F                     524              TRAP    #15
+Line 525 ERROR: Symbol value differs between first and second pass
+000003DC                           525  .END        ADD.L   #512,A7                 ; RESTORE STACK
+000003DC  4CDF 4F1F                526              MOVEM.L (A7)+, D0-D4/A0-A3/A6
+000003E0  4E75                     527              RTS
+Line 528 ERROR: Symbol value differs between first and second pass
+000003E2= 53 45 4C 45 43 54 ...    528  .MSG        DC.B    'SELECT A CSV FILE TO LOAD',0
+Line 529 ERROR: Symbol value differs between first and second pass
+000003FB= 2A 2E 43 53 56           529  .FILTER     DC.B    '*.CSV',0
+00000400                           530              DS.W    0
+Line 531 ERROR: Symbol value differs between first and second pass
+00000400                           531  .SKIP1      MOVE.B  (A0)+, D0
+00000400  5204                     532              ADDQ.B  #1, D4
+Line 533 ERROR: Undefined symbol
+00000402  B83C 0016                533              CMP.B   #GRDWIDTH, D4
+00000406  6600 0094                534              BNE     .NORESET
+0000040A  4204                     535              CLR.B   D4
+Line 536 ERROR: Symbol value differs between first and second pass
+0000040C                           536  .NORESET    BRA     .SKIP2
+0000040C                           537  
+0000040C                           538  ; -----------------------------------------------------------------------------
+Line 539 ERROR: Symbol value differs between first and second pass
+0000040C                           539  GRDLRGT
+0000040C                           540  ; LOADS THE RIGHT PART OF THE GRID FROM A CSV FORMATTED FILE
+0000040C                           541  ; INPUT    : NONE
+0000040C                           542  ; OUTPUT   : NONE
+0000040C                           543  ; MODIFIES : NONE
+0000040C                           544  ; NOTE     : THE LOCAL BUFFER SIZE MUST BE MAX(512,2*GRDWIDTH+1). PLEASE CHANGE
+0000040C                           545  ;            IT ACCORDINGLY IF GRDWIDTH*2+1 IS LARGER THAN 512.
+0000040C                           546  ; NOTE     : ALL THE ACTIVE CELLS ARE STORED AS PLAYER 2 INDEPENDLY OF THEIR
+0000040C                           547  ;            ACTUAL VALUE.
+0000040C                           548  ; -----------------------------------------------------------------------------
+0000040C                           549  
+0000040C                           550  ; TODO : PLACE YOUR CODE HERE
+0000040C  48E7 F8F2                551              MOVEM.L D0-D4/A0-A3/A6, -(A7)   ; GUARDAM REGISTRES
+00000410                           552              
+00000410  4284                     553              CLR.L   D4                      ; COUNTER
+00000412  103C 0032                554              MOVE.B  #50,D0                  ; CLOSE ALL FILES (RECOMMENDED)
+00000416  4E4F                     555              TRAP    #15
+00000418  9FFC 00000200            556              SUB.L   #512,A7                 ; ROW BUFFER IN LOCAL MEMORY
+0000041E  103C 003A                557              MOVE.B  #58,D0                  ; SHOW FILE DIALOG TASK
+00000422  4281                     558              CLR.L   D1                      ; DISPLAY LOAD DIALOG
+00000424  43F9 00000534            559              LEA     .MSG,A1                 ; STANDARD MESSAGE
+0000042A  45F9 0000054E            560              LEA     .FILTER,A2              ; NO FILTER
+00000430  264F                     561              MOVE.L  A7,A3                   ; FILE NAME BUFFER
+00000432  4253                     562              CLR.W   (A3)                    ; ENSURE THERE IS NO STRING
+00000434  4E4F                     563              TRAP    #15
+00000436  4A01                     564              TST.B   D1
+00000438  6700 00EE                565              BEQ     .END                    ; IF CANCELLED, DO NOTHING
+0000043C  224B                     566              MOVE.L  A3,A1                   ; PLACE THE FILENAME INTO A1
+0000043E  103C 0033                567              MOVE.B  #51,D0                  ; OPEN EXISTING FILE
+00000442  4E4F                     568              TRAP    #15
+00000444  4A40                     569              TST.W   D0                      ; CHECK ERRORS
+00000446  6600 00E0                570              BNE     .END                    ; IF ERRORS, DO NOTHING MORE
+0000044A  2C4F                     571              MOVE.L  A7,A6                   ; PUT A6 INTO START OF BUFFER
+0000044C  224F                     572              MOVE.L  A7,A1                   ; PUT A1 INTO START OF BUFFER
+Line 573 ERROR: Undefined symbol
+0000044E  2079 004DBD16            573              MOVE.L  (GRDDST), A0            ; POINTER TO STORE PROCESS DATA
+Line 574 ERROR: Comma expected
+00000454                           574              MOVE.W  #GRDHEIGH-1,D3
+Line 575 ERROR: Symbol value differs between first and second pass
+00000454                           575  .LOOP       MOVE.L  A6,A1
+00000454  103C 0035                576              MOVE.B  #53,D0                  ; READ DATA TASK NUMBER
+Line 577 ERROR: Invalid syntax
+00000458                           577              MOVE.L  #GRDWIDTH*2+1,D2        ; NUMBER OF BYTES TO READ
+00000458  4E4F                     578              TRAP    #15                     ; READ THE DATA
+Line 579 ERROR: Comma expected
+0000045A                           579              MOVE.W  #GRDWIDTH-1,D2
+Line 580 ERROR: Symbol value differs between first and second pass
+0000045A                           580  .COPY       MOVE.B  (A1)+,D0                ; PICK ONE LOADED CHARACTER
+0000045A                           581              ; MITAT FINS FINAL
+Line 582 ERROR: Comma expected
+0000045A                           582              CMP.B   #GRDWIDTH/2, D4         ; COMENÇAM PER LA MEITAT DE LA MATRIU
+0000045A  6D00 00F8                583              BLT     .SKIP1
+0000045E  5204                     584              ADDQ.B  #1, D4
+Line 585 ERROR: Undefined symbol
+00000460  B83C 0016                585              CMP.B   #GRDWIDTH, D4
+00000464  6600 00AC                586              BNE     .NORESET
+00000468  4204                     587              CLR.B   D4
+Line 588 ERROR: Symbol value differs between first and second pass
+0000046A                           588  .NORESET    SUB.B   #'0',D0                 ; CONVERT FROM ASCII TO NUMBER
+0000046A  10C0                     589              MOVE.B  D0,(A0)+                ; STORE DATA
+Line 590 ERROR: Symbol value differs between first and second pass
+0000046C                           590  .SKIP2      ADDQ.L  #1,A1                   ; SKIP THE COMMA
+0000046C  51CA 008E                591              DBRA.W  D2,.COPY
+00000470  51CB 0078                592              DBRA.W  D3,.LOOP
+00000474  103C 0038                593              MOVE.B  #56,D0                  ; CLOSE FILE
+00000478  4E4F                     594              TRAP    #15
+Line 595 ERROR: Symbol value differs between first and second pass
+0000047A                           595  .END        ADD.L   #512,A7                 ; RESTORE STACK
+0000047A  4CDF 4F1F                596              MOVEM.L (A7)+, D0-D4/A0-A3/A6   ; RESTAURAM REGISTRES
+0000047E  4E75                     597              RTS
+Line 598 ERROR: Symbol value differs between first and second pass
+00000480= 53 45 4C 45 43 54 ...    598  .MSG        DC.B    'SELECT A CSV FILE TO LOAD',0
+Line 599 ERROR: Symbol value differs between first and second pass
+00000499= 2A 2E 43 53 56           599  .FILTER     DC.B    '*.CSV',0
+0000049E                           600              DS.W    0
+Line 601 ERROR: Symbol value differs between first and second pass
+0000049E                           601  .SKIP1      MOVE.B  (A0)+, D0
+0000049E  5204                     602              ADDQ.B  #1, D4
+000004A0  6076                     603              BRA     .SKIP2
+000004A2                           604  
+000004A2                           605  ; -----------------------------------------------------------------------------
+Line 606 ERROR: Symbol value differs between first and second pass
+000004A2                           606  GRDPLOT
+000004A2                           607  ; PLOTS THE GRID
+000004A2                           608  ; INPUT    : NONE
+000004A2                           609  ; OUTPUT   : NONE
+000004A2                           610  ; MODIFIES : NONE
+000004A2                           611  ; -----------------------------------------------------------------------------
+000004A2                           612  ; TODO : PLACE YOUR CODE HERE
+000004A2                           613  
+000004A2                           614  *REGISTRES UTILITZATS:
+000004A2                           615  *D0
+000004A2                           616  *D1
+000004A2                           617  *D2
+000004A2                           618  *D3
+000004A2                           619  *D4
+000004A2                           620              ; -----------------------------------------------------------------------------
+Line 621 ERROR: Symbol defined more than once
+000004A2                           621  GRDPLOT
+000004A2                           622  ; PLOTS THE GRID
+000004A2                           623  ; INPUT    : NONE
+000004A2                           624  ; OUTPUT   : NONE
+000004A2                           625  ; MODIFIES : NONE
+000004A2                           626  ; -----------------------------------------------------------------------------
+000004A2                           627  ; TODO : PLACE YOUR CODE HERE
+000004A2                           628  
+000004A2  48E7 FE80                629              MOVEM.L D0-D6/A0, -(A7)         ;GUARDAM REGISTRES
+000004A6                           630  ;----------------------------POSADA A PUNT(RESET)------------------------------
+Line 631 ERROR: Undefined symbol
+000004A6  4279 004DBD16            631              CLR.W   GRDNPLR1
+Line 632 ERROR: Undefined symbol
+000004AC  4279 004DBD16            632              CLR.W   GRDNPLR2
+000004B2                           633  ;----------------------------POSAR COLOR VERD AL LLAPIS------------------------           
+000004B2  103C 0050                634              MOVE.B  #80, D0
+Line 635 ERROR: Undefined symbol
+000004B6  223C 004DBD16            635              MOVE.L  #CLRDKGRN,D1
+000004BC  4E4F                     636              TRAP    #15
+000004BE                           637  ;----------------------------POSAR PEN WIDTH-----------------------------------            
+000004BE  103C 005D                638              MOVE.B  #93, D0
+000004C2  123C 0000                639              MOVE.B  #0, D1
+000004C6  4E4F                     640              TRAP    #15
+000004C8                           641  ;----------------------------BUCLE DE RECORREGUT-------------------------------            
+Line 642 ERROR: Undefined symbol
+000004C8  2079 004DBD16            642              MOVE.L  (GRDDST), A0
+Line 643 ERROR: Undefined symbol
+000004CE  323C BD16                643              MOVE.W  #GRDXOFF, D1           
+Line 644 ERROR: Undefined symbol
+000004D2  343C BD16                644              MOVE.W  #GRDYOFF, D2            
+000004D6  3601                     645              MOVE.W  D1, D3
+000004D8  3802                     646              MOVE.W  D2, D4
+Line 647 ERROR: Undefined symbol
+000004DA  0643 BD16                647              ADD.W   #GRDSZCEL, D3
+Line 648 ERROR: Undefined symbol
+000004DE  0644 BD16                648              ADD.W   #GRDSZCEL, D4
+000004E2                           649              
+Line 650 ERROR: Comma expected
+000004E2                           650              MOVE.W  #GRDHEIGH-1, D5         ;NOMBRE DE FILES-1
+Line 651 ERROR: Symbol value differs between first and second pass
+000004E2                           651  .LOOPY      
+Line 652 ERROR: Comma expected
+000004E2                           652              MOVE.W  #GRDWIDTH-1, D6         ;NOMBRE DE COLUMNES-1
+Line 653 ERROR: Symbol value differs between first and second pass
+000004E2                           653  .LOOP       MOVE.B  (A0)+, D0               ;OBTENIM VALOR DE PINTAR
+000004E2  48E7 C000                654              MOVEM.L D0-D1, -(A7)           
+000004E6  B03C 0001                655              CMP.B   #1, D0                  
+000004EA  6700 01B6                656              BEQ     .PLAYER1                  
+000004EE  B03C 0002                657              CMP.B   #2, D0                  ;CASELLA JUGADOR 2?
+000004F2  6700 01BE                658              BEQ     .PLAYER2
+Line 659 ERROR: Undefined symbol
+000004F6  223C 004DBD16            659              MOVE.L  #CLRBLACK, D1           ;SINO, NEGRE
+Line 660 ERROR: Symbol value differs between first and second pass
+000004FC                           660  .PINTA      
+000004FC  103C 0051                661              MOVE.B  #81, D0                 ;COLOR PER EMPLENAR
+00000500  4E4F                     662              TRAP    #15                     
+00000502                           663              
+00000502  4CDF 0003                664              MOVEM.L (A7)+, D0-D1            
+00000506  103C 0057                665              MOVE.B  #87, D0                 ;FICAM TASCA A EXECUTAR
+0000050A  4E4F                     666              TRAP    #15                     ;DIBUIXAM RECTANGLE
+Line 667 ERROR: Undefined symbol
+0000050C  0641 BD16                667              ADD.W   #GRDSZCEL, D1           
+Line 668 ERROR: Undefined symbol
+00000510  0643 BD16                668              ADD.W   #GRDSZCEL, D3           
+00000514  51CE 008C                669              DBRA.W  D6, .LOOP               
+00000518                           670              
+Line 671 ERROR: Undefined symbol
+00000518  0642 BD16                671              ADD.W   #GRDSZCEL, D2           
+Line 672 ERROR: Undefined symbol
+0000051C  0644 BD16                672              ADD.W   #GRDSZCEL, D4
+Line 673 ERROR: Undefined symbol
+00000520  323C BD16                673              MOVE.W  #GRDXOFF, D1            
+00000524  3601                     674              MOVE.W  D1, D3                  
+Line 675 ERROR: Undefined symbol
+00000526  0643 BD16                675              ADD.W   #GRDSZCEL, D3
+0000052A  51CD 0072                676              DBRA.W  D5,.LOOPY               ; SEGUENT CASELLA
+0000052E                           677  ;----------------------------IMPRIMIM PUNTUACIÓ JUGADOR 1----------------------
+0000052E                           678              
+0000052E                           679              ;POSAM EL COLOR BLAU AL LLAPIS
+0000052E  103C 0051                680              MOVE.B  #81, D0
+Line 681 ERROR: Undefined symbol
+00000532  223C 004DBD16            681              MOVE.L  #GRDCOLP1, D1
+00000538  4E4F                     682              TRAP    #15
+0000053A                           683              
+0000053A                           684              ;UBICAM EL CURSOR PER PINTAR EL CONTADOR DEL JUGADOR 1
+0000053A  103C 000B                685              MOVE.B  #11, D0                 
+Line 686 ERROR: Invalid syntax
+0000053E                           686              MOVE.W  #GRDSCP1X<<8|GRDSCP1Y,D1
+0000053E  4E4F                     687              TRAP    #15
+00000540                           688              
+00000540                           689              ;IMPRIMIM EL CONTADOR
+00000540  103C 0003                690              MOVE.B  #3, D0
+00000544  4281                     691              CLR.L   D1                      
+Line 692 ERROR: Undefined symbol
+00000546  3239 004DBD16            692              MOVE.W  GRDNPLR1, D1            
+0000054C  4E4F                     693              TRAP    #15
+0000054E                           694              
+0000054E                           695              ;MIRAM SI HEM D'IMPRIMIR L'ASTERISC O NO
+Line 696 ERROR: Undefined symbol
+0000054E  3439 004DBD16            696              MOVE.W  GRDNPLR1, D2            
+Line 697 ERROR: Undefined symbol
+00000554  3639 004DBD16            697              MOVE.W  GRDNPLR2, D3            
+0000055A  B443                     698              CMP.W   D3, D2   
+0000055C  6D00 00DC                699              BLT     .PLR2SCORE                 ;PLR2>PLR1--->NO IMPRIMIR ASTERISC
+00000560                           700              
+00000560                           701              ;UBICAM EL CURSOR PER PINTAR L'ASTERISC(1 COLUMNA MENYS)
+00000560  103C 000B                702              MOVE.B  #11, D0
+Line 703 ERROR: Invalid syntax
+00000564                           703              MOVE.W  #GRDSCP1X<<8|GRDSCP1Y-1,D1
+00000564  4E4F                     704              TRAP    #15
+00000566                           705              
+00000566                           706              ;IMPRIMIM L'ASTERISC '*'(42 EN ASCII)
+00000566  103C 0006                707              MOVE.B  #6, D0
+0000056A  123C 002A                708              MOVE.B  #$2A, D1                ;#$2A=42 EN ASCII
+0000056E  4E4F                     709              TRAP    #15
+00000570                           710              
+00000570                           711  ;----------------------------IMPRIMIM PUNTUACIÓ JUGADOR 2----------------------
+Line 712 ERROR: Symbol value differs between first and second pass
+00000570                           712  .PLR2SCORE                 
+00000570                           713              ;POSAM EL COLOR VERMELL AL LLAPIS
+00000570  103C 0051                714              MOVE.B  #81, D0
+Line 715 ERROR: Undefined symbol
+00000574  223C 004DBD16            715              MOVE.L  #GRDCOLP2, D1
+0000057A  4E4F                     716              TRAP    #15
+0000057C                           717              
+0000057C                           718              ;UBICAM EL CURSOR PER PINTAR EL CONTADOR DEL JUGADOR 2
+0000057C  103C 000B                719              MOVE.B  #11, D0                 
+Line 720 ERROR: Invalid syntax
+00000580                           720              MOVE.W  #GRDSCP2X<<8|GRDSCP2Y,D1
+00000580  4E4F                     721              TRAP    #15
+00000582                           722              
+00000582                           723              ;IMPRIMIM EL CONTADOR
+00000582  103C 0003                724              MOVE.B  #3, D0
+00000586  4281                     725              CLR.L   D1                      
+Line 726 ERROR: Undefined symbol
+00000588  3239 004DBD16            726              MOVE.W  GRDNPLR2, D1            
+0000058E  4E4F                     727              TRAP    #15
+00000590                           728              
+00000590                           729              ;MIRAM SI HEM D'IMPRIMIR L'ASTERISC O NO
+00000590  B642                     730              CMP.W   D2, D3                  
+00000592  6D00 00E4                731              BLT     .GENCOUNT                 ;PLR1>PLR2--->NO IMPRIMIR ASTERISC
+00000596                           732              
+00000596                           733              ;UBICAM EL CURSOR PER PINTAR L'ASTERISC(1 COLUMNA MENYS)
+00000596  103C 000B                734              MOVE.B  #11, D0
+Line 735 ERROR: Invalid syntax
+0000059A                           735              MOVE.W  #GRDSCP2X<<8|GRDSCP2Y-1,D1
+0000059A  4E4F                     736              TRAP    #15
+0000059C                           737              
+0000059C                           738              ;IMPRIMIM L'ASTERISC '*'(42 EN ASCII)
+0000059C  103C 0006                739              MOVE.B  #6, D0
+000005A0  123C 002A                740              MOVE.B  #$2A, D1                ;#$2A=42 EN ASCII
+000005A4  4E4F                     741              TRAP    #15
+000005A6                           742              
+000005A6                           743  ;----------------------------IMPRIMIM EL CONTADOR DE GENERACIONS---------------           
+Line 744 ERROR: Symbol value differs between first and second pass
+000005A6                           744  .GENCOUNT     
+000005A6                           745              ;POSAM EL COLOR DEL LLAPIS A VERD
+000005A6  103C 0051                746              MOVE.B  #81, D0                 ;TASCA DE TRAP
+Line 747 ERROR: Undefined symbol
+000005AA  223C 004DBD16            747              MOVE.L  #CLRLTGRN, D1
+000005B0  4E4F                     748              TRAP    #15
+000005B2                           749              
+000005B2  103C 000B                750              MOVE.B  #11, D0                 ;APUNTAM A LA POSICIÓ
+Line 751 ERROR: Invalid syntax
+000005B6                           751              MOVE.W  #GRDSCNGX<<8|GRDSCNGY,D1 
+000005B6  4E4F                     752              TRAP    #15
+000005B8                           753              
+000005B8  103C 0003                754              MOVE.B  #3, D0
+000005BC  4281                     755              CLR.L   D1                      ; EVITAM NUMEROS ERRONIS
+Line 756 ERROR: Undefined symbol
+000005BE  3239 004DBD16            756              MOVE.W  GRDNGEN, D1             ; P2 SCORE
+000005C4  4E4F                     757              TRAP    #15
+000005C6                           758              
+000005C6                           759              ; CHECK WHO IS WINNING
+000005C6  4CDF 017F                760              MOVEM.L (A7)+, D0-D6/A0         ; RESTORE REGISTERS
+000005CA  4E75                     761              RTS      
+000005CC                           762  ;--------------------POSAM COLOR AL LLAPIS SEGONS EL JUGADOR-------------------                       
+Line 763 ERROR: Symbol value differs between first and second pass
+000005CC                           763  .PLAYER1            
+Line 764 ERROR: Undefined symbol
+000005CC  223C 004DBD16            764              MOVE.L  #GRDCOLP1, D1           ;COLOR=BLAU
+Line 765 ERROR: Undefined symbol
+000005D2  5279 005455C4            765              ADDQ.W  #1, GRDNPLR1            ;AUGMENTAM CONTADOR NP1
+000005D8  4EF8 05BE                766              JMP     .PINTA
+Line 767 ERROR: Symbol value differs between first and second pass
+000005DC                           767  .PLAYER2      
+Line 768 ERROR: Undefined symbol
+000005DC  223C 004DBD16            768              MOVE.L  #GRDCOLP2, D1           ;COLOR=VERMELL
+Line 769 ERROR: Undefined symbol
+000005E2  5279 005455C4            769              ADDQ.W  #1, GRDNPLR2            ;AUGMENTAM CONTADOR NP2
+000005E8  4EF8 05BE                770              JMP     .PINTA
+000005EC                           771  
+000005EC                           772  
+000005EC                           773  
+000005EC                           774  
+000005EC                           775  
+000005EC                           776  
+000005EC                           777  
+000005EC                           778  
+000005EC                           779  
+000005EC                           780  
+000005EC                           781  
+000005EC                           782  
+000005EC                           783  
+000005EC                           784  
+000005EC                           785  
+000005EC                           786  
+Line 787 WARNING: END directive missing, starting address not set
+
+159 errors detected
+1 warning generated
+
+
+SYMBOL TABLE INFORMATION
+Symbol-name         Value
+-------------------------
+GRDINIT             0
+GRDINIT:LOOP        34
+GRDLLEFT            3E2
+GRDLLEFT:COPY       440
+GRDLLEFT:END        462
+GRDLLEFT:FILTER     488
+GRDLLEFT:LOOP       42E
+GRDLLEFT:MSG        46E
+GRDLLEFT:NORESET    49C
+GRDLLEFT:SKIP1      48E
+GRDLLEFT:SKIP2      452
+GRDLOAD             342
+GRDLOAD:COPY        39E
+GRDLOAD:END         3B6
+GRDLOAD:FILTER      3DC
+GRDLOAD:LOOP        38C
+GRDLOAD:MSG         3C2
+GRDLRGT             49E
+GRDLRGT:COPY        4FC
+GRDLRGT:END         528
+GRDLRGT:FILTER      54E
+GRDLRGT:LOOP        4EA
+GRDLRGT:MSG         534
+GRDLRGT:NORESET     512
+GRDLRGT:SKIP1       554
+GRDLRGT:SKIP2       518
+GRDMUPD             40
+GRDMUPD:ESBORRAR    C8
+GRDMUPD:FINAL       CE
+GRDMUPD:PLR2        BC
+GRDPLOT             55A
+GRDPLOT:GENCOUNT    678
+GRDPLOT:LOOP        5A2
+GRDPLOT:LOOPY       59E
+GRDPLOT:PINTA       5BE
+GRDPLOT:PLAYER1     6A2
+GRDPLOT:PLAYER2     6B2
+GRDPLOT:PLR2SCORE   63A
+GRDRUPD             D4
+GRDRUPD:CHECKP1     254
+GRDRUPD:CHECKPL1    1C8
+GRDRUPD:CHECK_VEINATS  112
+GRDRUPD:EMPTY       20E
+GRDRUPD:ENDUPD      10C
+GRDRUPD:LOOP        136
+GRDRUPD:MAIN_LOOP   F8
+GRDRUPD:NEXT        268
+GRDRUPD:NONG        270
+GRDRUPD:NORAND      238
+GRDRUPD:NORMES      17E
+GRDRUPD:P1END       206
+GRDRUPD:P2END       1C0
+GRDRUPD:PLR1IS0     204
+GRDRUPD:PLR1IS1     1F0
+GRDRUPD:PLR1IS2     1E4
+GRDRUPD:PLR2IS0     1BE
+GRDRUPD:PLR2IS1     1AA
+GRDRUPD:PLR2IS2     19E
+GRDRUPD:PROXIM      164
+GRDRUPD:RULES       FE
+GRDRUPD:SEGUENT     104
+GRDRUPD:VEINAT_P2   178
+GRDSAVE             296
+GRDSAVE:END         316
+GRDSAVE:FILTER      33C
+GRDSAVE:LOOP        2E4
+GRDSAVE:LOOPY       2E0
+GRDSAVE:MSG         322
+MOVEMENTX           276
+MOVEMENTY           286
+NMOVEMENTS          8
