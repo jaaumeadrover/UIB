@@ -1,22 +1,87 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
   <component name="ChangeListManager">
-    <list default="true" id="159f53e0-77d1-4a44-8e91-366c441bf347" name="Changes" comment="" />
+    <list default="true" id="159f53e0-77d1-4a44-8e91-366c441bf347" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/1st/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/1st/Final Practice Linear Algebra/DescLU.m" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/1st/Final Practice Linear Algebra/SustitucionProgresiva.m" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/1st/Final Practice Linear Algebra/SustitucionRegresiva.m" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/1st/Final Practice Linear Algebra/main.m" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/1st/TextManager/Readme.md" beforeDir="false" afterPath="$PROJECT_DIR$/1st/02_semester/TextManager/Readme.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/1st/TextManager/build.xml" beforeDir="false" afterPath="$PROJECT_DIR$/1st/02_semester/TextManager/build.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/1st/TextManager/build/classes/pràcticafinaljaumejoan/CodificacionAlfabetica.class" beforeDir="false" afterPath="$PROJECT_DIR$/1st/02_semester/TextManager/build/classes/pràcticafinaljaumejoan/CodificacionAlfabetica.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/1st/TextManager/build/classes/pràcticafinaljaumejoan/FrecuenciaCaracteres.class" beforeDir="false" afterPath="$PROJECT_DIR$/1st/02_semester/TextManager/build/classes/pràcticafinaljaumejoan/FrecuenciaCaracteres.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/1st/TextManager/build/classes/pràcticafinaljaumejoan/FrecuenciaPalabras.class" beforeDir="false" afterPath="$PROJECT_DIR$/1st/02_semester/TextManager/build/classes/pràcticafinaljaumejoan/FrecuenciaPalabras.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/1st/TextManager/build/classes/pràcticafinaljaumejoan/LT.class" beforeDir="false" afterPath="$PROJECT_DIR$/1st/02_semester/TextManager/build/classes/pràcticafinaljaumejoan/LT.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/1st/TextManager/build/classes/pràcticafinaljaumejoan/Linea.class" beforeDir="false" afterPath="$PROJECT_DIR$/1st/02_semester/TextManager/build/classes/pràcticafinaljaumejoan/Linea.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/1st/TextManager/build/classes/pràcticafinaljaumejoan/LineasFicherosIn.class" beforeDir="false" afterPath="$PROJECT_DIR$/1st/02_semester/TextManager/build/classes/pràcticafinaljaumejoan/LineasFicherosIn.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/1st/TextManager/build/classes/pràcticafinaljaumejoan/Palabra.class" beforeDir="false" afterPath="$PROJECT_DIR$/1st/02_semester/TextManager/build/classes/pràcticafinaljaumejoan/Palabra.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/1st/TextManager/build/classes/pràcticafinaljaumejoan/PalabraFicherosIn.class" beforeDir="false" afterPath="$PROJECT_DIR$/1st/02_semester/TextManager/build/classes/pràcticafinaljaumejoan/PalabraFicherosIn.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/1st/TextManager/build/classes/pràcticafinaljaumejoan/PracticaFinal.class" beforeDir="false" afterPath="$PROJECT_DIR$/1st/02_semester/TextManager/build/classes/pràcticafinaljaumejoan/PracticaFinal.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/1st/TextManager/jj.txt" beforeDir="false" afterPath="$PROJECT_DIR$/1st/02_semester/TextManager/jj.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/1st/TextManager/jj.txt.cod.txt" beforeDir="false" afterPath="$PROJECT_DIR$/1st/02_semester/TextManager/jj.txt.cod.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/1st/TextManager/manifest.mf" beforeDir="false" afterPath="$PROJECT_DIR$/1st/02_semester/TextManager/manifest.mf" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/1st/TextManager/nbproject/build-impl.xml" beforeDir="false" afterPath="$PROJECT_DIR$/1st/02_semester/TextManager/nbproject/build-impl.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/1st/TextManager/nbproject/genfiles.properties" beforeDir="false" afterPath="$PROJECT_DIR$/1st/02_semester/TextManager/nbproject/genfiles.properties" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/1st/TextManager/nbproject/private/private.properties" beforeDir="false" afterPath="$PROJECT_DIR$/1st/02_semester/TextManager/nbproject/private/private.properties" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/1st/TextManager/nbproject/private/private.xml" beforeDir="false" afterPath="$PROJECT_DIR$/1st/02_semester/TextManager/nbproject/private/private.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/1st/TextManager/nbproject/project.properties" beforeDir="false" afterPath="$PROJECT_DIR$/1st/02_semester/TextManager/nbproject/project.properties" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/1st/TextManager/nbproject/project.xml" beforeDir="false" afterPath="$PROJECT_DIR$/1st/02_semester/TextManager/nbproject/project.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/1st/TextManager/src/pràcticafinaljaumejoan/CodificacionAlfabetica.java" beforeDir="false" afterPath="$PROJECT_DIR$/1st/02_semester/TextManager/src/pràcticafinaljaumejoan/CodificacionAlfabetica.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/1st/TextManager/src/pràcticafinaljaumejoan/FrecuenciaCaracteres.java" beforeDir="false" afterPath="$PROJECT_DIR$/1st/02_semester/TextManager/src/pràcticafinaljaumejoan/FrecuenciaCaracteres.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/1st/TextManager/src/pràcticafinaljaumejoan/FrecuenciaPalabras.java" beforeDir="false" afterPath="$PROJECT_DIR$/1st/02_semester/TextManager/src/pràcticafinaljaumejoan/FrecuenciaPalabras.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/1st/TextManager/src/pràcticafinaljaumejoan/LT.java" beforeDir="false" afterPath="$PROJECT_DIR$/1st/02_semester/TextManager/src/pràcticafinaljaumejoan/LT.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/1st/TextManager/src/pràcticafinaljaumejoan/Linea.java" beforeDir="false" afterPath="$PROJECT_DIR$/1st/02_semester/TextManager/src/pràcticafinaljaumejoan/Linea.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/1st/TextManager/src/pràcticafinaljaumejoan/LineasFicherosIn.java" beforeDir="false" afterPath="$PROJECT_DIR$/1st/02_semester/TextManager/src/pràcticafinaljaumejoan/LineasFicherosIn.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/1st/TextManager/src/pràcticafinaljaumejoan/Palabra.java" beforeDir="false" afterPath="$PROJECT_DIR$/1st/02_semester/TextManager/src/pràcticafinaljaumejoan/Palabra.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/1st/TextManager/src/pràcticafinaljaumejoan/PalabraFicherosIn.java" beforeDir="false" afterPath="$PROJECT_DIR$/1st/02_semester/TextManager/src/pràcticafinaljaumejoan/PalabraFicherosIn.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/1st/TextManager/src/pràcticafinaljaumejoan/PracticaFinal.java" beforeDir="false" afterPath="$PROJECT_DIR$/1st/02_semester/TextManager/src/pràcticafinaljaumejoan/PracticaFinal.java" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
-  <component name="ProjectColorInfo"><![CDATA[{
-  "customColor": "",
-  "associatedIndex": 5
-}]]></component>
-  <component name="ProjectId" id="3ElmyS52daq4wN0fdpl73pbs7iC" />
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;last_opened_file_path&quot;: &quot;C:/Users/Jaume/miniconda3/envs/ia2022&quot;
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;jaaumeadrover&quot;
   }
 }</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/jaaumeadrover/UIB.git&quot;,
+    &quot;accountId&quot;: &quot;c61f03e2-0c43-4d57-8e51-9f10cbbd5c58&quot;
+  }
+}</component>
+  <component name="ProjectColorInfo">{
+  &quot;customColor&quot;: &quot;&quot;,
+  &quot;associatedIndex&quot;: 5
+}</component>
+  <component name="ProjectId" id="3ElmyS52daq4wN0fdpl73pbs7iC" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/Jaume/Desktop/TEMP/BDDE-24&quot;
+  }
+}</component>
+  <component name="RecentsManager">
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\Jaume\Desktop\Jaume Adrover\2. FORMACIÓ\1. UIB\UIB\1st\02_semester" />
+    </key>
+  </component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>

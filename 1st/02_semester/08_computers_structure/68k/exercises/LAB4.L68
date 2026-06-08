@@ -1,0 +1,73 @@
+00001008 Starting Address
+Assembler used: EASy68K Editor/Assembler v5.16.01
+Created On: 29/03/2021 11:24:21
+
+00000000                             1  *-----------------------------------------------------------
+00000000                             2  * Title      : LAB_4
+00000000                             3  * Written by : Jaume Adrover Fernández
+00000000                             4  * Date       : 29/03/2021
+00000000                             5  * Description: 
+00000000                             6  *-----------------------------------------------------------
+00001000                             7      ORG    $1000
+00001000                             8      
+00001000  =00000007                  9      N: EQU 7
+00001000= F6 78 08 46 00 9D 96      10      V: DC.B -10,120,8,70,0,-99,-106
+00001007= 00                        11      C: DC.B 0
+00001008  =00000008                 12      T1: EQU 8
+00001008  =00000063                 13      T2: EQU 99
+00001008                            14      
+00001008                            15  START:
+00001008                            16  
+00001008  41F8 1000                 17      LEA.L V,A0
+0000100C  1038 1007                 18      MOVE.B C,D0
+00001010  123C 0007                 19      MOVE.B #N,D1
+00001014  5301                      20      SUB.B #1,D1
+00001016                            21  *INICIO BUCLE TRATAMIENTO
+00001016                            22  TRATAMIENTO:
+00001016  1418                      23      MOVE.B (A0)+,D2
+00001018  B47C 0000                 24      CMP #0,D2
+0000101C  6D00 0018                 25      BLT ABS
+00001020                            26  RETURN:
+00001020  B478 0008                 27      CMP T1,D2
+00001024  6400 0016                 28      BHS ANALIZE
+00001028  51C9 FFEC                 29      DBRA D1,TRATAMIENTO
+0000102C                            30  INCREASE:
+0000102C  5200                      31      ADD.B #1,D0    
+0000102E  51C9 FFE6                 32      DBRA D1,TRATAMIENTO
+00001032                            33      
+00001032  6000 000E                 34      BRA FIN    
+00001036                            35  ABS:
+00001036  C5FC FFFF                 36      MULS.W #-1,D2
+0000103A  60E4                      37      BRA RETURN
+0000103C                            38  ANALIZE:
+0000103C  B478 0063                 39      CMP T2,D2
+00001040  63EA                      40      BLS INCREASE
+00001042                            41      
+00001042                            42      
+00001042                            43  FIN:
+00001042                            44                    
+00001042  FFFF FFFF                 45      SIMHALT             ; halt simulator
+00001046                            46  
+00001046                            47  * Put variables and constants here
+00001046                            48  
+00001046                            49      END    START        ; last line of source
+
+No errors detected
+No warnings generated
+
+
+SYMBOL TABLE INFORMATION
+Symbol-name         Value
+-------------------------
+ABS                 1036
+ANALIZE             103C
+C                   1007
+FIN                 1042
+INCREASE            102C
+N                   7
+RETURN              1020
+START               1008
+T1                  8
+T2                  63
+TRATAMIENTO         1016
+V                   1000

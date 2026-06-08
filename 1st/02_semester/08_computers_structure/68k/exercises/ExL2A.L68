@@ -1,0 +1,49 @@
+00001006 Starting Address
+Assembler used: EASy68K Editor/Assembler v5.16.01
+Created On: 15/03/2021 10:51:14
+
+00000000                             1  *-----------------------------------------------------------
+00000000                             2  * Title      : L2A
+00000000                             3  * Written by : Jaume Adrover Fernández
+00000000                             4  * Date       : 13/03/2021
+00000000                             5  * Description: set C.W to |A.W + B.W|
+00000000                             6  *-----------------------------------------------------------
+00001000                             7      ORG    $1000
+00001000= 0028                       8      A: DC.W 40
+00001002= 000D                       9      B: DC.W 13
+00001004                            10      C: DS.W 1
+00001006                            11      
+00001006                            12      
+00001006  3038 1000                 13  START:  MOVE.W A,D0
+0000100A  D078 1002                 14          ADD.W B,D0
+0000100E  31C0 1004                 15          MOVE.W D0,C
+00001012  0C40 0000                 16          CMPI.W #0,D0
+00001016  6D00 0006                 17          BLT SIGN
+0000101A  6000 000C                 18          BRA FIN
+0000101E                            19          
+0000101E  9040                      20  SIGN:   SUB.W D0,D0
+00001020  9078 1004                 21          SUB.W C,D0
+00001024  31C0 1004                 22          MOVE.W D0,C                        ; first instruction of program
+00001028                            23  
+00001028                            24  FIN:
+00001028                            25  * Put program code here
+00001028                            26  
+00001028  FFFF FFFF                 27      SIMHALT             ; halt simulator
+0000102C                            28  
+0000102C                            29  * Put variables and constants here
+0000102C                            30  
+0000102C                            31      END    START        ; last line of source
+
+No errors detected
+No warnings generated
+
+
+SYMBOL TABLE INFORMATION
+Symbol-name         Value
+-------------------------
+A                   1000
+B                   1002
+C                   1004
+FIN                 1028
+SIGN                101E
+START               1006
