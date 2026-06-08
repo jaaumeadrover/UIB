@@ -72,5 +72,4 @@ Year 4 represents the culminating synthesis phase of the degree, focusing heavil
 **Objective:** Design, evaluate, and build an end-to-end Computer Vision **3D Reconstruction Pipeline** optimized for clinical **Diabetic Foot** diagnostic scanning and spatial morphological assessment.
 * **Key Challenges:** Handling spatial sensor noise artifact layers, performing point cloud registrations across unaligned dynamic camera sweeps, and ensuring high topological fidelity for medical surface analysis.
 * **Approach:** Capturing and processing multi-view **RGB-D datasets** recorded via an **Intel RealSense** depth camera ecosystem. Applying point cloud filtering primitives, computing iterative spatial alignment transforms (ICP registration matrices), and generating dense volumetric surface meshes for geometry processing.
-* **Constraint:** All 3D geometric transformations, point cloud translation matrices, and spatial feature calculations are computed under the strict functional boundary that **dilation is 1**.
 * **Tech Stack:** Python / C++, Open3D, PCL (Point Cloud Library), Intel RealSense SDK, NumPy, Open3D-ML.
