@@ -48,7 +48,7 @@ The repository is organized cleanly by academic year and semester, mapping my pr
 | **[English for Computer Science](#-english-for-computer-science)** | Professional Writing | Technical documentation writing, specifications, and project pitching | 🟢 Completed |
 | **[Gràfica (Computer Graphics)](#-gràfica-computer-graphics)** | Visual Rendering | 3D rendering pipelines, matrix transformations, lighting, shaders | 🟢 Completed |
 | **[Llenguatges (Programming Languages)](#-llenguatges-programming-languages-theory)** | Language Paradigms | Functional vs. declarative paradigms, type scoping, formal semantics | 🟢 Completed |
-| **[Multimèdia (Multimedia Systems)](#-multimèdia-multimedia-systems)** | Signal Compression | Lossless/lossy spatial algorithms, audio/video quantization, codecs | 🟢 Completed |
+| **[Multimèdia (Multimedia Systems)](#-multimèdia-multimedia-systems)** | Website design | Website development, front-end vs backend. | 🟢 Completed |
 
 ### 🗓️ Year 4: Specialized Engineering
 | Module | Core Focus Area | Key Covered Milestones | Status |
